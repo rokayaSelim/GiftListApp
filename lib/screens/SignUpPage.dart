@@ -4,14 +4,19 @@ import 'mydatabase.dart';
 
 class SignUpPage extends StatelessWidget {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
 
-  final MyDatabaseClass _database = MyDatabaseClass();
+  final MyDatabaseClass _db = MyDatabaseClass();
 
   SignUpPage() {
-    _database.init();
+    _initializeDatabase();
+  }
+
+  Future<void> _initializeDatabase() async {
+    await _db.init();
   }
 
   @override
@@ -19,6 +24,7 @@ class SignUpPage extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
+          // Fullscreen background image
           Positioned.fill(
             child: Image.network(
               'https://images.pexels.com/photos/5485112/pexels-photo-5485112.jpeg',
@@ -35,6 +41,7 @@ class SignUpPage extends StatelessWidget {
               },
             ),
           ),
+          // Semi-transparent overlay
           Positioned.fill(
             child: Container(
               color: Colors.black.withOpacity(0.2),
@@ -50,7 +57,7 @@ class SignUpPage extends StatelessWidget {
                   "Welcome to Hedieaty App\n\nCreate an account",
                   style: TextStyle(
                     color: Colors.black87,
-                    fontSize: 24.0,
+                    fontSize: 28.0,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
@@ -60,8 +67,35 @@ class SignUpPage extends StatelessWidget {
                   key: _formKey,
                   child: Column(
                     children: [
+                      // Username field
                       TextFormField(
-                        controller: _emailController,
+                        controller: usernameController,
+                        style: TextStyle(color: Colors.black87),
+                        decoration: InputDecoration(
+                          labelText: 'Username',
+                          labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                          filled: true,
+                          fillColor: Colors.transparent,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(width: 2.0, color: Colors.black87),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(width: 2.0, color: Colors.teal),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Username is required.';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16.0),
+                      // Email field
+                      TextFormField(
+                        controller: emailController,
                         style: TextStyle(color: Colors.black87),
                         decoration: InputDecoration(
                           labelText: 'Email',
@@ -90,8 +124,9 @@ class SignUpPage extends StatelessWidget {
                         },
                       ),
                       SizedBox(height: 16.0),
+                      // Password field
                       TextFormField(
-                        controller: _passwordController,
+                        controller: passwordController,
                         style: TextStyle(color: Colors.black87),
                         decoration: InputDecoration(
                           labelText: 'Password',
@@ -119,8 +154,9 @@ class SignUpPage extends StatelessWidget {
                         },
                       ),
                       SizedBox(height: 16.0),
+                      // Confirm Password field
                       TextFormField(
-                        controller: _confirmPasswordController,
+                        controller: confirmPasswordController,
                         style: TextStyle(color: Colors.black87),
                         decoration: InputDecoration(
                           labelText: 'Confirm Password',
@@ -141,7 +177,7 @@ class SignUpPage extends StatelessWidget {
                           if (value == null || value.isEmpty) {
                             return 'Confirm Password is required.';
                           }
-                          if (value != _passwordController.text) {
+                          if (value != passwordController.text) {
                             return 'Passwords do not match.';
                           }
                           return null;
@@ -151,21 +187,31 @@ class SignUpPage extends StatelessWidget {
                       ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            String email = _emailController.text;
-                            String password = _passwordController.text;
+                            try {
+                              // Check if email already exists
+                              final existingUser = await _db.getUserByEmail(emailController.text);
+                              if (existingUser != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Email is already registered.')),
+                                );
+                                return;
+                              }
 
-                            // Check if email already exists in the database
-                            var existingUser = await _database.getUser(email);
-                            if (existingUser != null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Email already exists. Try another!')),
+                              // Add the user to the database
+                              await _db.addUser(
+                                emailController.text,
+                                passwordController.text,
+                                usernameController.text,
                               );
-                            } else {
-                              // Add the new user to the database
-                              await _database.addUser(email, password);
+
+                              // Navigate to the HomePage on successful sign-up
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(builder: (context) => HomePage()),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: ${e.toString()}')),
                               );
                             }
                           }
