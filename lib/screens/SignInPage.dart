@@ -1,10 +1,50 @@
 import 'package:flutter/material.dart';
 import 'HomePage.dart';
+import 'mydatabase.dart'; // Ensure this imports your database class
 
 class SignInPage extends StatelessWidget {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  final MyDatabaseClass _db = MyDatabaseClass(); // Initialize the database
+
+  Future<void> _signIn(BuildContext context) async {
+    if (_formKey.currentState!.validate()) {
+      String email = _emailController.text;
+      String password = _passwordController.text;
+
+      try {
+        // Check if the email exists in the database
+        final user = await _db.getUserByEmail(email);
+
+        if (user == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Email not registered. Please sign up.')),
+          );
+          return;
+        }
+
+        // Check if the password matches the stored one
+        if (user['password'] != password) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Incorrect password.')),
+          );
+          return;
+        }
+
+        // If both email and password match, navigate to the HomePage
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage()),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,8 +81,7 @@ class SignInPage extends StatelessWidget {
               children: [
                 Spacer(),
                 Text(
-                  "Welcome to Hedieaty App"
-                      "\n\nSign In",
+                  "Welcome to Hedieaty App\n\nSign In",
                   style: TextStyle(
                     color: Colors.black87,
                     fontSize: 28.0,
@@ -115,17 +154,7 @@ class SignInPage extends StatelessWidget {
                       ),
                       SizedBox(height: 24.0),
                       ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            // Navigate to Profile Page with user details
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => HomePage(),
-                              ),
-                            );
-                          }
-                        },
+                        onPressed: () => _signIn(context), // Call the sign-in function
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
                           foregroundColor: Colors.white,
