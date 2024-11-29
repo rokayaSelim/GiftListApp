@@ -25,7 +25,10 @@ class HedieatyApp extends StatelessWidget {
       routes: {
         '/': (context) => HomePage(),
         '/eventList': (context) => EventListPage(),
-        '/giftList': (context) => GiftListPage(),
+        '/giftList': (context) {
+          final eventId = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
+          return GiftListPage(eventId: eventId); // Pass eventId dynamically
+          },
         '/giftDetails': (context) => GiftDetailsPage(),
         '/profile': (context) => ProfilePage(userName: '', userEmail: ''),
         '/MypledgedGifts': (context) => MyPledgedGiftsPage(),

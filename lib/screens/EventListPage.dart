@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'GiftListPage.dart';
 import 'mydatabase.dart';
 
 class EventListPage extends StatefulWidget {
@@ -10,20 +11,20 @@ class _EventListPageState extends State<EventListPage> {
   List<Map<String, dynamic>> events = [];
   String sortBy = 'name';
   String searchQuery = ''; // Search query
-  late final MyDatabaseClass db;
+  late final MyDatabaseClass mydb;
 
   @override
   void initState() {
     super.initState();
-    db = MyDatabaseClass();
-    db.init().then((_) {
+    mydb = MyDatabaseClass();
+    mydb.init().then((_) {
       loadEvents(); // Load events during initialization
     });
   }
 
   // Load events from the database with an optional search query
   void loadEvents({String searchQuery = ''}) async {
-    final data = await db.getAllEvents();
+    final data = await mydb.getAllEvents();
     setState(() {
       // Filter events based on the search query
       events = data.where((event) {
@@ -102,10 +103,9 @@ class _EventListPageState extends State<EventListPage> {
           ),
           actions: [
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal[400]),
               onPressed: () async {
                 if (eventNameController.text.isNotEmpty) {
-                  await db.addEvent(
+                  await mydb.addEvent(
                     eventNameController.text,
                     eventDateController.text,
                     eventLocationController.text,
@@ -171,7 +171,7 @@ class _EventListPageState extends State<EventListPage> {
             ElevatedButton(
               onPressed: () async {
                 // Call the updateEvent method with 6 parameters
-                await db.updateEvent(
+                await mydb.updateEvent(
                   eventID,                  // Pass the event's ID
                   eventNameController.text, // Pass the updated name
                   eventDateController.text, // Pass the updated date
@@ -197,7 +197,7 @@ class _EventListPageState extends State<EventListPage> {
 
   // Delete event from the database
   void deleteEvent(int eventID) async {
-    await db.deleteEvent(eventID);
+    await mydb.deleteEvent(eventID);
     loadEvents(); // Reload events from the database
   }
 
@@ -226,7 +226,7 @@ class _EventListPageState extends State<EventListPage> {
           ),
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withOpacity(0.1),
             ),
           ),
           Padding(
@@ -318,7 +318,12 @@ class _EventListPageState extends State<EventListPage> {
                               IconButton(
                                 icon: Icon(Icons.card_giftcard, color: Colors.teal),
                                 onPressed: () {
-                                  Navigator.pushNamed(context, '/giftList');
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => GiftListPage(eventId: event['ID']),
+                                    ),
+                                  );
                                 },
                               ),
                             ],

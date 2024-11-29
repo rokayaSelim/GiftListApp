@@ -3,6 +3,10 @@ import 'PledgedGiftsPage.dart';
 import 'mydatabase.dart'; // Your database class
 
 class GiftListPage extends StatefulWidget {
+  final int eventId;
+
+  GiftListPage({required this.eventId});
+
   @override
   _GiftListPageState createState() => _GiftListPageState();
 }
@@ -11,25 +15,26 @@ class _GiftListPageState extends State<GiftListPage> {
   List<Map<String, dynamic>> gifts = []; // List of all gifts
   List<Map<String, dynamic>> pledgedGifts = []; // List of pledged gifts
   String sortBy = 'name'; // Default sorting criteria
-  late final MyDatabaseClass db; // Database instance
+  late final MyDatabaseClass mydb; // Database instance
 
   @override
   void initState() {
     super.initState();
-    db = MyDatabaseClass();
-    db.init().then((_) {
+    mydb = MyDatabaseClass();
+    mydb.init().then((_) {
       loadGifts(); // Load all gifts from the database
     });
   }
 
   // Load all gifts and filter pledged gifts
   void loadGifts() async {
-    final data = await db.getAllGifts();
+    final data = await mydb.getGiftsForEvent(widget.eventId); // Pass eventId to filter gifts
     setState(() {
       gifts = data;
       pledgedGifts = data.where((gift) => gift['isPledged'] == 1).toList(); // Filter pledged gifts
     });
   }
+
   int _selectedIndex = 0;
   void _onItemTapped(int index) {
     setState(() {
@@ -48,7 +53,7 @@ class _GiftListPageState extends State<GiftListPage> {
   // Function to pledge a gift
   void pledgeGift(int index) async {
     final gift = gifts[index];
-    await db.updateGift(
+    await mydb.updateGift(
       gift['ID'],
       gift['name'],
       gift['category'],
@@ -97,7 +102,8 @@ class _GiftListPageState extends State<GiftListPage> {
             ElevatedButton(
               onPressed: () async {
                 if (name.isNotEmpty && category.isNotEmpty && price > 0) {
-                  await db.addGift(name, category, description, price); // Add gift to database
+                  // Pass the eventId when adding a new gift
+                  await mydb.addGift(name, category, description, price, widget.eventId);
                   loadGifts(); // Reload gifts
                   Navigator.pop(context); // Close the dialog
                 } else {
@@ -117,6 +123,7 @@ class _GiftListPageState extends State<GiftListPage> {
       },
     );
   }
+
 
   // Function to edit a gift
   void editGift(int index) {
@@ -159,7 +166,7 @@ class _GiftListPageState extends State<GiftListPage> {
           actions: [
             ElevatedButton(
               onPressed: () {
-                db.updateGift(gifts[index]['ID'], name, category, description, price, gifts[index]['isPledged'] == 1);
+                mydb.updateGift(gifts[index]['ID'], name, category, description, price, gifts[index]['isPledged'] == 1);
                 Navigator.pop(context);
                 loadGifts(); // Reload gifts
               },
@@ -186,7 +193,7 @@ class _GiftListPageState extends State<GiftListPage> {
           actions: [
             TextButton(
               onPressed: () {
-                db.deleteGift(gifts[index]['ID']); // Delete the gift from the database
+                mydb.deleteGift(gifts[index]['ID']); // Delete the gift from the database
                 loadGifts(); // Reload gifts
                 Navigator.pop(context);
               },
@@ -244,7 +251,7 @@ class _GiftListPageState extends State<GiftListPage> {
             ),
           ),
           Positioned.fill(
-            child: Container(color: Colors.black.withOpacity(0.5)),
+            child: Container(color: Colors.black.withOpacity(0.1)),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
