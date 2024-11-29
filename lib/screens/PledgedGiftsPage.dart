@@ -38,7 +38,7 @@ class PledgedGiftsPage extends StatelessWidget {
           // Semi-transparent overlay
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withOpacity(0.1),
             ),
           ),
           // Main content
