@@ -9,14 +9,14 @@ class SignUpPage extends StatelessWidget {
   final TextEditingController confirmPasswordController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
 
-  final MyDatabaseClass _db = MyDatabaseClass();
+  final MyDatabaseClass _mydb = MyDatabaseClass();
 
   SignUpPage() {
     _initializeDatabase();
   }
 
   Future<void> _initializeDatabase() async {
-    await _db.init();
+    await _mydb.init();
   }
 
   @override
@@ -44,7 +44,7 @@ class SignUpPage extends StatelessWidget {
           // Semi-transparent overlay
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withOpacity(0.1),
             ),
           ),
           Padding(
@@ -189,7 +189,7 @@ class SignUpPage extends StatelessWidget {
                           if (_formKey.currentState!.validate()) {
                             try {
                               // Check if email already exists
-                              final existingUser = await _db.getUserByEmail(emailController.text);
+                              final existingUser = await _mydb.getUserByEmail(emailController.text);
                               if (existingUser != null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text('Email is already registered.')),
@@ -198,7 +198,7 @@ class SignUpPage extends StatelessWidget {
                               }
 
                               // Add the user to the database
-                              await _db.addUser(
+                              await _mydb.addUser(
                                 emailController.text,
                                 passwordController.text,
                                 usernameController.text,

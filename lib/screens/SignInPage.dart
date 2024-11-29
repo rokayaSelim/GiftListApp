@@ -7,7 +7,7 @@ class SignInPage extends StatelessWidget {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  final MyDatabaseClass _db = MyDatabaseClass(); // Initialize the database
+  final MyDatabaseClass _mydb = MyDatabaseClass(); // Initialize the database
 
   Future<void> _signIn(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
@@ -16,7 +16,7 @@ class SignInPage extends StatelessWidget {
 
       try {
         // Check if the email exists in the database
-        final user = await _db.getUserByEmail(email);
+        final user = await _mydb.getUserByEmail(email);
 
         if (user == null) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -71,7 +71,7 @@ class SignInPage extends StatelessWidget {
           // Semi-transparent overlay
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withOpacity(0.1),
             ),
           ),
           Padding(
