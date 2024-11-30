@@ -36,7 +36,7 @@ class SignInPage extends StatelessWidget {
         // If both email and password match, navigate to the HomePage
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomePage()),
+          MaterialPageRoute(builder: (context) => HomePage(userEmail: email)),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(

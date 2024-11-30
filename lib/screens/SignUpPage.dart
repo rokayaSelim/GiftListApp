@@ -207,7 +207,7 @@ class SignUpPage extends StatelessWidget {
                               // Navigate to the HomePage on successful sign-up
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(builder: (context) => HomePage()),
+                                MaterialPageRoute(builder: (context) => HomePage(userEmail: emailController.text)),
                               );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
