@@ -23,14 +23,28 @@ class HedieatyApp extends StatelessWidget {
       ),
       initialRoute: '/signUp',
       routes: {
-        '/': (context) => HomePage(),
+        '/': (context) {
+          // Extract userEmail from the arguments and pass it to the ProfilePage
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
+          final userEmail = args['userEmail'] ?? ''; // Fallback to empty if not provided
+          return HomePage(userEmail: userEmail);
+        },
         '/eventList': (context) => EventListPage(),
         '/giftList': (context) {
           final eventId = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
           return GiftListPage(eventId: eventId); // Pass eventId dynamically
           },
-        '/giftDetails': (context) => GiftDetailsPage(),
-        '/profile': (context) => ProfilePage(userName: '', userEmail: ''),
+        '/giftDetails': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
+          final eventId = args['eventId'] ?? 0; // Extract eventId from arguments
+          return GiftDetailsPage(eventId: eventId); // Pass giftId and eventId dynamically
+        },
+        '/profile': (context) {
+          // Extract userEmail from the arguments and pass it to the ProfilePage
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
+          final userEmail = args['userEmail'] ?? ''; // Fallback to empty if not provided
+          return ProfilePage(userEmail: userEmail);
+        },
         '/MypledgedGifts': (context) => MyPledgedGiftsPage(),
         '/pledgedGifts': (context) => PledgedGiftsPage(pledgedGifts: [],),
         '/signUp': (context) => SignUpPage(),

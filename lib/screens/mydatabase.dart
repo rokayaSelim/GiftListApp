@@ -61,11 +61,50 @@ class MyDatabaseClass {
             username TEXT NOT NULL
           )
         ''');
+        await mydb.execute('''
+          CREATE TABLE IF NOT EXISTS friends (
+            ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            userId INTEGER NOT NULL,
+            FOREIGN KEY(userId) REFERENCES users(ID)
+          )
+        ''');
 
         print("Database created and tables initialized.");
       },
     );
   }
+// Add a friend relationship in the database
+  Future<void> addFriend(int userId, int friendId) async {
+    Database? mydb = await database;
+    await mydb!.insert('friends', {
+      'userId': userId,
+      'friendId': friendId,
+    });
+  }
+
+  // Remove a friend relationship from the database
+  Future<void> removeFriend(int userId, int friendId) async {
+    Database? mydb = await database;
+    await mydb!.delete(
+      'friends',
+      where: 'userId = ? AND friendId = ?',
+      whereArgs: [userId, friendId],
+    );
+  }
+
+  // Fetch added friends for a specific user
+  Future<List<Map<String, dynamic>>> getFriends(int userId) async {
+    Database? mydb = await database;
+    final result = await mydb!.rawQuery('''
+    SELECT u.ID, u.username, u.email
+    FROM friends f
+    INNER JOIN users u ON f.friendId = u.ID
+    WHERE f.userId = ?
+  ''', [userId]);
+
+    return result;
+  }
+
 
   // Insert a user into the database
   Future<void> addUser(String email, String password, String username) async {
@@ -92,6 +131,20 @@ class MyDatabaseClass {
       whereArgs: [email],
     );
     return result.isNotEmpty ? result.first : null;
+  }
+  Future<void> updateUserName(String email, String newUserName) async {
+    Database? mydb = await database;
+
+    // Update query to modify username based on email
+    await mydb!.update(
+      'users',
+      {
+        'username': newUserName,
+      },
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+    print("Username updated successfully for $email.");
   }
 
   // Update user information
