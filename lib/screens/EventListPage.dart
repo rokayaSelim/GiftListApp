@@ -46,7 +46,7 @@ class _EventListPageState extends State<EventListPage> {
     } else if (index == 1) {
       Navigator.pushNamed(context, '/eventList');
     } else if (index == 2) {
-      Navigator.pushNamed(context, '/giftList');
+      Navigator.pushNamed(context, '/profile');
     }
   }
   // Sort events based on criteria
@@ -349,11 +349,11 @@ class _EventListPageState extends State<EventListPage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.event),
-            label: 'Events',
+            label: 'My Events',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.card_giftcard),
-            label: 'My Gifts',
+            icon: Icon(Icons.person_2_outlined),
+            label: 'My profile',
           ),
         ],
         backgroundColor: Colors.black87,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'PledgedGiftsPage.dart';
+import 'GiftDetailsPage.dart';
 import 'mydatabase.dart'; // Your database class
 
 class GiftListPage extends StatefulWidget {
@@ -47,7 +48,7 @@ class _GiftListPageState extends State<GiftListPage> {
     } else if (index == 1) {
       Navigator.pushNamed(context, '/eventList');
     } else if (index == 2) {
-      Navigator.pushNamed(context, '/giftList');
+      Navigator.pushNamed(context, '/profile');
     }
   }
   // Function to pledge a gift
@@ -66,62 +67,14 @@ class _GiftListPageState extends State<GiftListPage> {
 
   // Function to add a new gift
   void addGift() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        String name = '';
-        String category = '';
-        String description = '';
-        double price = 0.0;
-
-        return AlertDialog(
-          title: Text('Add New Gift'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                onChanged: (value) => name = value,
-                decoration: InputDecoration(labelText: 'Gift Name'),
-              ),
-              TextField(
-                onChanged: (value) => category = value,
-                decoration: InputDecoration(labelText: 'Category'),
-              ),
-              TextField(
-                onChanged: (value) => description = value,
-                decoration: InputDecoration(labelText: 'Description'),
-              ),
-              TextField(
-                onChanged: (value) => price = double.tryParse(value) ?? 0.0,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Price'),
-              ),
-            ],
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () async {
-                if (name.isNotEmpty && category.isNotEmpty && price > 0) {
-                  // Pass the eventId when adding a new gift
-                  await mydb.addGift(name, category, description, price, widget.eventId);
-                  loadGifts(); // Reload gifts
-                  Navigator.pop(context); // Close the dialog
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Please fill all fields properly')),
-                  );
-                }
-              },
-              child: Text('Add'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context), // Close dialog
-              child: Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GiftDetailsPage(eventId: widget.eventId),
+      ),
+    ).then((value) {
+      if (value == true) loadGifts(); // Reload gifts if a gift was added
+    });
   }
 
 
@@ -297,10 +250,12 @@ class _GiftListPageState extends State<GiftListPage> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              IconButton(
-                                icon: Icon(Icons.edit),
-                                onPressed: () => editGift(index),
-                              ),
+                              if (gift['isPledged'] == 0)
+                                IconButton(
+                                  icon: Icon(Icons.edit),
+                                  onPressed: () => editGift(index),
+                                ),
+                              if (gift['isPledged'] == 0)
                               IconButton(
                                 icon: Icon(Icons.delete, color: Colors.red),
                                 onPressed: () => deleteGift(index),
@@ -313,9 +268,33 @@ class _GiftListPageState extends State<GiftListPage> {
                                 onPressed: gift['isPledged'] == 1 ? null : () => pledgeGift(index),
                               ),
                               IconButton(
-                                icon: Icon(Icons.info_outline, color: Colors.blueGrey),
+                                icon: Icon(Icons.info_outline, color: Colors.blue),
                                 onPressed: () {
-                                  Navigator.pushNamed(context, '/giftDetails');
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        title: Text('${gift['name']} Details',style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24,color: Colors.teal),),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text('Category: ${gift['category']}',style: TextStyle(fontSize: 18,),),
+                                            SizedBox(height: 8),
+                                            Text('Description: ${gift['description']}',style: TextStyle(fontSize: 18,)),
+                                            SizedBox(height: 8),
+                                            Text('Price: \$${gift['price'].toStringAsFixed(2)}',style: TextStyle(fontSize: 18,)),
+                                          ],
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: Text('Close'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
                                 },
                               ),
                             ],
@@ -341,11 +320,11 @@ class _GiftListPageState extends State<GiftListPage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.event),
-            label: 'Events',
+            label: 'My Events',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.card_giftcard),
-            label: 'My Gifts',
+            icon: Icon(Icons.person_2_outlined),
+            label: 'My profile',
           ),
         ],
         backgroundColor: Colors.black87,
