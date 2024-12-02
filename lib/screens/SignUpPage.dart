@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'HomePage.dart';
 import 'mydatabase.dart';
+import 'session_manger.dart'; // Import the session manager
 
 class SignUpPage extends StatelessWidget {
   final _formKey = GlobalKey<FormState>();
@@ -8,6 +9,7 @@ class SignUpPage extends StatelessWidget {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
+
 
   final MyDatabaseClass _mydb = MyDatabaseClass();
 
@@ -17,6 +19,12 @@ class SignUpPage extends StatelessWidget {
 
   Future<void> _initializeDatabase() async {
     await _mydb.init();
+  }
+
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -44,7 +52,7 @@ class SignUpPage extends StatelessWidget {
           // Semi-transparent overlay
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withOpacity(0.2),
             ),
           ),
           Padding(
@@ -56,7 +64,7 @@ class SignUpPage extends StatelessWidget {
                 Text(
                   "Welcome to Hedieaty App\n\nCreate an account",
                   style: TextStyle(
-                    color: Colors.black87,
+                    color: Colors.white,
                     fontSize: 28.0,
                     fontWeight: FontWeight.bold,
                   ),
@@ -70,15 +78,13 @@ class SignUpPage extends StatelessWidget {
                       // Username field
                       TextFormField(
                         controller: usernameController,
-                        style: TextStyle(color: Colors.black87),
+                        style: TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: 'Username',
-                          labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-                          filled: true,
-                          fillColor: Colors.transparent,
+                          labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(width: 2.0, color: Colors.black87),
+                            borderSide: BorderSide(width: 2.0, color: Colors.white),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -96,15 +102,13 @@ class SignUpPage extends StatelessWidget {
                       // Email field
                       TextFormField(
                         controller: emailController,
-                        style: TextStyle(color: Colors.black87),
+                        style: TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: 'Email',
-                          labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-                          filled: true,
-                          fillColor: Colors.transparent,
+                          labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(width: 2.0, color: Colors.black87),
+                            borderSide: BorderSide(width: 2.0, color: Colors.white),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -127,15 +131,13 @@ class SignUpPage extends StatelessWidget {
                       // Password field
                       TextFormField(
                         controller: passwordController,
-                        style: TextStyle(color: Colors.black87),
+                        style: TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-                          filled: true,
-                          fillColor: Colors.transparent,
+                          labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(width: 2.0, color: Colors.black87),
+                            borderSide: BorderSide(width: 2.0, color: Colors.white),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -157,15 +159,13 @@ class SignUpPage extends StatelessWidget {
                       // Confirm Password field
                       TextFormField(
                         controller: confirmPasswordController,
-                        style: TextStyle(color: Colors.black87),
+                        style: TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: 'Confirm Password',
-                          labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-                          filled: true,
-                          fillColor: Colors.transparent,
+                          labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(width: 2.0, color: Colors.black87),
+                            borderSide: BorderSide(width: 2.0, color: Colors.white),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -191,28 +191,29 @@ class SignUpPage extends StatelessWidget {
                               // Check if email already exists
                               final existingUser = await _mydb.getUserByEmail(emailController.text);
                               if (existingUser != null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Email is already registered.')),
-                                );
+                                _showSnackBar(context, 'Email is already registered.');
                                 return;
                               }
 
-                              // Add the user to the database
-                              await _mydb.addUser(
+                              // Add the user to the database and retrieve their ID
+                               await _mydb.addUser(
                                 emailController.text,
                                 passwordController.text,
                                 usernameController.text,
                               );
 
+                              // Save userId to session
+                              final newUser = await _mydb.getUserByEmail(emailController.text);
+                              final userId = newUser!['ID'];
+                              await saveUserId(userId);
+
                               // Navigate to the HomePage on successful sign-up
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(builder: (context) => HomePage(userEmail: emailController.text)),
+                                MaterialPageRoute(builder: (context) => HomePage()),
                               );
                             } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: ${e.toString()}')),
-                              );
+                              _showSnackBar(context, 'Error: ${e.toString()}');
                             }
                           }
                         },
@@ -233,7 +234,7 @@ class SignUpPage extends StatelessWidget {
                         },
                         child: Text(
                           'Already have an account? Sign In',
-                          style: TextStyle(color: Colors.black87),
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
                     ],
