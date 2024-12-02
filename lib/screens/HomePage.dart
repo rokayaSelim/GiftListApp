@@ -175,16 +175,16 @@ class _HomePageState extends State<HomePage> {
         onPressed: () => Navigator.pushNamed(context, '/eventList'),
         label: Text(
           'Create Event/List',
-          style: TextStyle(fontSize: 16, color: Colors.white),
+          style: TextStyle(fontSize: 16, color: Colors.black87),
         ),
-        icon: Icon(Icons.add, color: Colors.white),
-        backgroundColor: Colors.black87,
+        icon: Icon(Icons.add, color: Colors.black87),
+        backgroundColor: Colors.white.withOpacity(0.6),
       ),
       body: Stack(
         children: [
           Positioned.fill(
             child: Image.network(
-              'https://images.pexels.com/photos/5485112/pexels-photo-5485112.jpeg',
+              'https://images.unsplash.com/photo-1511886277144-49a67943f819?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTc5fHxnaWZ0JTIwYmFja2dyb3VuZHxlbnwwfHwwfHx8MA%3D%3D',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -209,7 +209,7 @@ class _HomePageState extends State<HomePage> {
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color:Colors.white.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(color: Colors.black26,
@@ -243,13 +243,14 @@ class _HomePageState extends State<HomePage> {
               Expanded(
                 child: ListView.builder(
                   itemCount: filteredFriends.length,
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: EdgeInsets.symmetric(horizontal: 15.08),
                   itemBuilder: (context, index) {
                     final friend = filteredFriends[index];
                     final isFriend = addedFriends.contains(friend);
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Card(
+                        color: Colors.white.withOpacity(0.6),
                         elevation: 4,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius
                             .circular(15)),
@@ -263,13 +264,13 @@ class _HomePageState extends State<HomePage> {
                           title: Text(
                             friend['name'],
                             style: TextStyle(fontWeight: FontWeight.w600,
-                                fontSize: 18,
+                                fontSize: 20,
                                 color: Colors.black87),
                           ),
                           subtitle: Text(
-                            'Upcoming Events: ${friend['upcomingEvents']}',
+                            'Upcoming Events: ${friend['ID']}',
                             style: TextStyle(
-                                color: Colors.teal[600], fontSize: 15),
+                                color: Colors.teal[600], fontSize: 16),
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -309,14 +310,16 @@ class _HomePageState extends State<HomePage> {
                                     }
                                   },
                                 ),
-                              SizedBox(width: 10),
+
                               IconButton(
                                 icon: Icon(Icons.arrow_forward_ios,
                                     color: Colors.teal[400]),
-                                onPressed: () {
+                                onPressed: () async {
+                                  final friendId = friend['ID'];
+                                  await saveFriendId(friendId);
                                   Navigator.pushNamed(
                                     context,
-                                    '/friendDetails',
+                                    '/usereventList',
                                     arguments: {'friendId': friend['ID']},
                                   );
                                 },

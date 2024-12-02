@@ -35,7 +35,7 @@ class SignUpPage extends StatelessWidget {
           // Fullscreen background image
           Positioned.fill(
             child: Image.network(
-              'https://images.pexels.com/photos/5485112/pexels-photo-5485112.jpeg',
+              'https://images.unsplash.com/photo-1511886277144-49a67943f819?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTc5fHxnaWZ0JTIwYmFja2dyb3VuZHxlbnwwfHwwfHx8MA%3D%3D',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -82,6 +82,8 @@ class SignUpPage extends StatelessWidget {
                         decoration: InputDecoration(
                           labelText: 'Username',
                           labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.3),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(width: 2.0, color: Colors.white),
@@ -106,6 +108,8 @@ class SignUpPage extends StatelessWidget {
                         decoration: InputDecoration(
                           labelText: 'Email',
                           labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.2),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(width: 2.0, color: Colors.white),
@@ -135,6 +139,8 @@ class SignUpPage extends StatelessWidget {
                         decoration: InputDecoration(
                           labelText: 'Password',
                           labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.2),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(width: 2.0, color: Colors.white),
@@ -163,6 +169,8 @@ class SignUpPage extends StatelessWidget {
                         decoration: InputDecoration(
                           labelText: 'Confirm Password',
                           labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.2),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(width: 2.0, color: Colors.white),

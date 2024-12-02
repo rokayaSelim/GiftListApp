@@ -10,15 +10,13 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  late TextEditingController _usernameController;
   String _userName = "";
-  String _userEmail = "";  // To store user email
+  String _userEmail = ""; // To store user email
   final MyDatabaseClass _mydb = MyDatabaseClass(); // Initialize the database class
 
   @override
   void initState() {
     super.initState();
-    _usernameController = TextEditingController();
     _fetchUserDetails(); // Fetch user details when the page loads
   }
 
@@ -33,11 +31,9 @@ class _ProfilePageState extends State<ProfilePage> {
           setState(() {
             _userName = user['username']; // Assuming 'username' field exists in your database
             _userEmail = user['email']; // Assuming 'email' field exists in your database
-            _usernameController = TextEditingController(text: _userName);
           });
         }
       } else {
-        // Handle case where userId is not found
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('User not logged in. Please log in again.')),
         );
@@ -49,27 +45,55 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // Update the username in the database
-  Future<void> _updateUserName() async {
-    String newUserName = _usernameController.text.trim();
-    if (newUserName.isNotEmpty && newUserName != _userName) {
-      try {
-        final userId = await getUserId(); // Get the userId from SharedPreferences
-        if (userId != null) {
-          await _mydb.updateUserName(userId, newUserName); // Update username in the database by userId
-          setState(() {
-            _userName = newUserName;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Username updated successfully!')),
-          );
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating username: ${e.toString()}')),
-        );
-      }
-    }
+  // Show dialog to edit the username
+  void _showEditUsernameDialog() {
+    final TextEditingController _editController =
+    TextEditingController(text: _userName);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Edit Username"),
+        content: TextField(
+          controller: _editController,
+          decoration: InputDecoration(
+            labelText: "New Username",
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              String newUserName = _editController.text.trim();
+              if (newUserName.isNotEmpty && newUserName != _userName) {
+                try {
+                  final userId = await getUserId();
+                  if (userId != null) {
+                    await _mydb.updateUserName(userId, newUserName);
+                    setState(() {
+                      _userName = newUserName;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Username updated successfully!')),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error updating username: ${e.toString()}')),
+                  );
+                }
+              }
+              Navigator.pop(context);
+            },
+            child: Text("Save"),
+          ),
+        ],
+      ),
+    );
   }
 
   // Bottom navigation
@@ -106,7 +130,7 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           Positioned.fill(
             child: Image.network(
-              'https://images.pexels.com/photos/5485112/pexels-photo-5485112.jpeg',
+              'https://images.unsplash.com/photo-1511886277144-49a67943f819?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTc5fHxnaWZ0JTIwYmFja2dyb3VuZHxlbnwwfHwwfHx8MA%3D%3D',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -121,12 +145,13 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           _userName.isEmpty
-              ? Center(child: CircularProgressIndicator()) // Show loading indicator while fetching data
-              : Padding(
+          ? Center(child: CircularProgressIndicator()) // Show loading indicator while fetching data
+          : Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
                 Card(
+                  color: Colors.white.withOpacity(0.6),
                   elevation: 4,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
@@ -141,37 +166,21 @@ class _ProfilePageState extends State<ProfilePage> {
                           child: Icon(Icons.person, size: 50, color: Colors.black87),
                         ),
                         SizedBox(height: 15),
-                        TextFormField(
-                          controller: _usernameController,
-                          decoration: InputDecoration(
-                            labelText: 'Username',
-                            labelStyle: TextStyle(color: Colors.black87),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                        ListTile(
+                          title: Text("Username"),
+                          subtitle: Text(_userName),
+                          trailing: IconButton(
+                            icon: Icon(Icons.edit, color: Colors.teal[400]),
+                            onPressed: _showEditUsernameDialog,
                           ),
                         ),
-                        SizedBox(height: 15),
-                        Text(
-                          _userEmail, // Display the user email
-                          style: TextStyle(fontSize: 16, color: Colors.black87),
+                        Divider(color: Colors.grey[300]),
+                        ListTile(
+                          title: Text("Email"),
+                          subtitle: Text(_userEmail),
+                          trailing: Icon(Icons.lock, color: Colors.grey[500]),
                         ),
-                        SizedBox(height: 15),
-                        ElevatedButton(
-                          onPressed: _updateUserName, // Update username action
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal[400],
-                            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: Text(
-                            "Save Changes",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        SizedBox(height: 20),
+                        Divider(color: Colors.grey[300]),
                         ListTile(
                           title: Text(
                             "Your Events",
