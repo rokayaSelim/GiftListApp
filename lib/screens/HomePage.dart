@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'mydatabase.dart';
-import 'ProfilePage.dart'; // Import your database class file
+import 'session_manger.dart'; // Import your session manager
 
 class HomePage extends StatefulWidget {
-  final String userEmail; // New parameter to accept the email
-
-  // Constructor to receive the email
-  const HomePage({Key? key, required this.userEmail}) : super(key: key);
+  const HomePage({Key? key}) : super(key: key); // Removed userEmail and userId
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -15,111 +12,108 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final MyDatabaseClass db = MyDatabaseClass(); // Initialize database instance
 
-  List<Map<String, dynamic>> friends = [
-  ]; // List to store users from the database
+  List<Map<String, dynamic>> friends = [];
   List<Map<String, dynamic>> filteredFriends = [];
   List<Map<String, dynamic>> addedFriends = [];
 
   final TextEditingController _searchController = TextEditingController();
   int _selectedIndex = 0;
 
+  String userEmail = ''; // To store email of the current user
+  String userName = ''; // To store username of the current user
+
   @override
   void initState() {
     super.initState();
-    _fetchUsersFromDatabase();
+    _initializeUserData();
     _searchController.addListener(_filterFriends);
-    filteredFriends = [];
   }
 
-  // Function to mark a friend as added
-  void _addFriend(Map<String, dynamic> newFriend) async {
+  // Function to initialize user data
+  Future<void> _initializeUserData() async {
     try {
-      // Fetch the current user
-      final currentUser = await db.getUserByEmail(widget.userEmail);
-
-      if (currentUser == null || currentUser['ID'] == null) {
+      // Get the current user's ID from session manager
+      final currentUserId = await getUserId();
+      if (currentUserId == null) {
+        print('Current user ID is null');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to retrieve current user')),
+          SnackBar(content: Text('Failed to retrieve current user ID')),
         );
         return;
       }
 
-      final currentUserId = currentUser['ID'];
-      final friendId = newFriend['ID'];
+      // Fetch the current user's data (email and username)
+      final user = await db.getUserById(currentUserId);
+      if (user != null) {
+        setState(() {
+          userName =
+          user['username']; // Assuming 'username' field exists in your database
+          userEmail =
+          user['email']; // Assuming 'email' field exists in your database
 
-      if (friendId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to retrieve friend ID')),
-        );
-        return;
+        });
       }
 
-      // Attempt to add the friend
-      await db.addFriend(currentUserId, friendId);
-
-      // Update the lists and UI
-      setState(() {
-        addedFriends.add(newFriend);
-        filteredFriends.add(newFriend);
-      });
-
+      _fetchUsersFromDatabase(); // After getting user data, fetch all users
+    } catch (e) {
+      print('Error initializing user data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${newFriend['name']} added as a friend')),
+        SnackBar(content: Text('Failed to retrieve user data')),
+      );
+    }
+  }
+
+  Future<void> _addFriend(Map<String, dynamic> friend) async {
+    try {
+      final currentUserId = await getUserId();
+      if (currentUserId == null) {
+        print('Current user ID is null');
+        return;
+      }
+      await db.addFriend(currentUserId, friend['ID']);
+      setState(() {
+        addedFriends.add(friend);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${friend['name']} added as a friend')),
       );
     } catch (e) {
-      // Handle the case where the friendship already exists
-      if (e.toString().contains('Friendship already exists')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${newFriend['name']} is already your friend')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add friend')),
-        );
-      }
+      print('Error adding friend: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add friend')),
+      );
     }
   }
 
 
   Future<void> _fetchUsersFromDatabase() async {
     try {
-      final currentUser = await db.getUserByEmail(widget.userEmail);
-
-      if (currentUser == null || currentUser['ID'] == null) {
-        print('Current user not found or user ID is null');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to retrieve current user')),
-        );
+      final currentUserId = await getUserId();
+      if (currentUserId == null) {
+        print('Current user ID is null');
         return;
       }
 
-      final currentUserId = currentUser['ID'];
-
-      // Fetch all users from the database
-      final allUsers = await db.getAllUsers(); // Fetch all users (implement this in your database class)
-
-      // Fetch all added friends
+      final allUsers = await db.getAllUsers();
       final friendsList = await db.getFriends(currentUserId);
-
-      // Separate added friends from other users
       final friendsIds = friendsList.map((friend) => friend['ID']).toSet();
 
       setState(() {
         friends = allUsers
-            .where((user) => user['ID'] != currentUserId) // Exclude current user
+            .where((user) => user['ID'] != currentUserId)
             .map((user) {
           return {
             "ID": user['ID'],
             "name": user['username'],
             "email": user['email'],
-            "upcomingEvents": 0, // Replace with actual data if available
+            "upcomingEvents": 0,
             "hasFriendRequest": false,
           };
-        })
-            .toList();
+        }).toList();
 
-        addedFriends = friends.where((user) => friendsIds.contains(user['ID'])).toList();
-        filteredFriends = List.from(friends); // Start with all users in the filtered list
+        addedFriends =
+            friends.where((user) => friendsIds.contains(user['ID'])).toList();
+        filteredFriends = List.from(friends);
       });
     } catch (e) {
       print('Error fetching friends from database: $e');
@@ -129,33 +123,32 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-
-
   void _filterFriends() {
     final query = _searchController.text.toLowerCase();
     setState(() {
       if (query.isNotEmpty) {
-        // Filter based on the search query
         filteredFriends = friends.where((friend) {
           final nameMatches = friend['name'].toLowerCase().contains(query);
-          final notCurrentUser = friend['email'] != widget.userEmail;
+          final notCurrentUser = friend['email'] != userEmail;
           return nameMatches && notCurrentUser;
         }).toList();
       }
     });
   }
 
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index) async {
     setState(() {
       _selectedIndex = index;
     });
-    if (index == 0) Navigator.pushNamed(context, '/');
-    if (index == 1) Navigator.pushNamed(context, '/eventList');
-    if (index == 2) Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-          builder: (context) => ProfilePage(userEmail: widget.userEmail)),
-    );
+    if (index == 0) {
+      Navigator.pushNamed(context, '/');
+    }
+    if (index == 1) {
+      Navigator.pushNamed(context, '/eventList');
+    }
+    if (index == 2) {
+      Navigator.pushNamed(context, '/profile');
+    }
   }
 
   @override
@@ -171,9 +164,8 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: Text(
           'Hedieaty',
-          style: TextStyle(fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white),
+          style: TextStyle(
+              fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: Colors.black87,
         elevation: 0,
@@ -198,10 +190,7 @@ class _HomePageState extends State<HomePage> {
                 return Container(
                   color: Colors.grey[200],
                   child: Icon(
-                    Icons.broken_image,
-                    size: 100,
-                    color: Colors.grey,
-                  ),
+                      Icons.broken_image, size: 100, color: Colors.grey),
                 );
               },
             ),
@@ -223,11 +212,9 @@ class _HomePageState extends State<HomePage> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 5,
-                        offset: Offset(0, 3),
-                      ),
+                      BoxShadow(color: Colors.black26,
+                          blurRadius: 5,
+                          offset: Offset(0, 3))
                     ],
                   ),
                   child: TextField(
@@ -264,9 +251,8 @@ class _HomePageState extends State<HomePage> {
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Card(
                         elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius
+                            .circular(15)),
                         child: ListTile(
                           leading: CircleAvatar(
                             radius: 30,
@@ -290,27 +276,35 @@ class _HomePageState extends State<HomePage> {
                             children: [
                               if (!isFriend)
                                 IconButton(
-                                  icon: Icon(Icons.person_add, color: Colors.orangeAccent),
+                                  icon: Icon(Icons.person_add,
+                                      color: Colors.orangeAccent),
                                   onPressed: () => _addFriend(friend),
                                 ),
                               if (isFriend)
                                 IconButton(
-                                  icon: Icon(Icons.person_remove, color: Colors.red),
+                                  icon: Icon(
+                                      Icons.person_remove, color: Colors.red),
                                   onPressed: () async {
-                                    final currentUser = await db.getUserByEmail(widget.userEmail);
+                                    final currentUser = await db.getUserByEmail(
+                                        userEmail);
 
                                     if (currentUser != null) {
-                                      await db.removeFriend(currentUser['ID'], friend['ID']);
+                                      await db.removeFriend(
+                                          currentUser['ID'], friend['ID']);
                                       setState(() {
                                         addedFriends.remove(friend);
                                         filteredFriends.remove(friend);
                                       });
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('${friend['name']} removed from friends')),
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(content: Text(
+                                            '${friend['name']} removed from friends')),
                                       );
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Failed to identify current user')),
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(content: Text(
+                                            'Failed to identify current user')),
                                       );
                                     }
                                   },
@@ -320,7 +314,11 @@ class _HomePageState extends State<HomePage> {
                                 icon: Icon(Icons.arrow_forward_ios,
                                     color: Colors.teal[400]),
                                 onPressed: () {
-                                  Navigator.pushNamed(context, '/eventList');
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/friendDetails',
+                                    arguments: {'friendId': friend['ID']},
+                                  );
                                 },
                               ),
                             ],
