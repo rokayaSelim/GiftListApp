@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'GiftListPage.dart';
 import 'mydatabase.dart';
+import 'session_manger.dart';
 
 class EventListPage extends StatefulWidget {
   @override
@@ -24,16 +25,19 @@ class _EventListPageState extends State<EventListPage> {
 
   // Load events from the database with an optional search query
   void loadEvents({String searchQuery = ''}) async {
-    final data = await mydb.getAllEvents();
-    setState(() {
-      // Filter events based on the search query
-      events = data.where((event) {
-        return event['name'].toLowerCase().contains(searchQuery.toLowerCase()) ||
-            event['category'].toLowerCase().contains(searchQuery.toLowerCase()) ||
-            event['status'].toLowerCase().contains(searchQuery.toLowerCase());
-      }).toList();
-    });
+    int? userId = await getUserId();  // Retrieve the user ID
+    if (userId != null) {
+      final data = await mydb.getEventsByUserId(userId);  // Pass user ID to the database method
+      setState(() {
+        events = data.where((event) {
+          return event['name'].toLowerCase().contains(searchQuery.toLowerCase()) ||
+              event['category'].toLowerCase().contains(searchQuery.toLowerCase()) ||
+              event['status'].toLowerCase().contains(searchQuery.toLowerCase());
+        }).toList();
+      });
+    }
   }
+
   int _selectedIndex = 0;
   void _onItemTapped(int index) {
     setState(() {
@@ -64,12 +68,15 @@ class _EventListPageState extends State<EventListPage> {
   }
 
   // Show add event dialog
-  void _showAddEventDialog(int userID) {
+  void _showAddEventDialog() async {
     final TextEditingController eventNameController = TextEditingController();
     final TextEditingController eventCategoryController = TextEditingController();
     final TextEditingController eventDateController = TextEditingController();
     final TextEditingController eventLocationController = TextEditingController();
     final TextEditingController eventDescriptionController = TextEditingController();
+
+    // Retrieve the user ID from SharedPreferences
+    int? userId = await getUserId();
 
     showDialog(
       context: context,
@@ -104,14 +111,14 @@ class _EventListPageState extends State<EventListPage> {
           actions: [
             ElevatedButton(
               onPressed: () async {
-                if (eventNameController.text.isNotEmpty) {
+                if (eventNameController.text.isNotEmpty && userId != null) {
                   await mydb.addEvent(
                     eventNameController.text,
                     eventDateController.text,
                     eventLocationController.text,
                     eventDescriptionController.text,
                     eventCategoryController.text,
-                    userID, // Assuming the userID is passed to this method
+                    userId, // Pass user ID to associate the event with the user
                   );
                   loadEvents(); // Reload events from the database
                 }
@@ -128,6 +135,7 @@ class _EventListPageState extends State<EventListPage> {
       },
     );
   }
+
 
   // Show edit event dialog
   void _showEditEventDialog(int eventID, String eventName, String eventCategory, String eventDate, String eventLocation, String eventDescription) {
@@ -217,7 +225,7 @@ class _EventListPageState extends State<EventListPage> {
         children: [
           Positioned.fill(
             child: Image.network(
-              'https://images.pexels.com/photos/5485112/pexels-photo-5485112.jpeg',
+              'https://images.unsplash.com/photo-1511886277144-49a67943f819?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTc5fHxnaWZ0JTIwYmFja2dyb3VuZHxlbnwwfHwwfHx8MA%3D%3D',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Center(child: Text('Image not found'));
@@ -237,7 +245,7 @@ class _EventListPageState extends State<EventListPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: () => _showAddEventDialog(1), // Assuming user ID is 1
+                        onPressed: () => _showAddEventDialog(), // Assuming user ID is 1
                         icon: Icon(Icons.add_circle, color: Colors.teal),
                       ),
                       Expanded(
@@ -259,6 +267,7 @@ class _EventListPageState extends State<EventListPage> {
                         ),
                       ),
                       PopupMenuButton<String>(
+                        color: Colors.white.withOpacity(0.8),
                         icon: Icon(Icons.sort),
                         onSelected: (String criteria) {
                           sortEvents(criteria); // Call sortEvents with the selected criteria
@@ -285,13 +294,14 @@ class _EventListPageState extends State<EventListPage> {
                   child: events.isEmpty
                       ? Center(child: Text('No upcoming events'))
                       : ListView.builder(
-                    itemCount: events.length,
-                    itemBuilder: (context, index) {
-                      final event = events[index];
-                      return Card(
-                        shape: RoundedRectangleBorder(
+                        itemCount: events.length,
+                        itemBuilder: (context, index) {
+                        final event = events[index];
+                        return Card(
+                          color: Colors.white.withOpacity(0.6),
+                          shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15.0),
-                        ),
+                          ),
                         margin: EdgeInsets.symmetric(vertical: 8),
                         elevation: 3,
                         child: ListTile(
@@ -317,11 +327,14 @@ class _EventListPageState extends State<EventListPage> {
                               ),
                               IconButton(
                                 icon: Icon(Icons.card_giftcard, color: Colors.teal),
-                                onPressed: () {
+                                onPressed: () async {
+                                  // Save the event ID to shared preferences
+                                  await saveEventId(event['ID']);
+                                  // Navigate to the UserGiftListPage
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => GiftListPage(eventId: event['ID']),
+                                      builder: (context) => GiftListPage(),
                                     ),
                                   );
                                 },
