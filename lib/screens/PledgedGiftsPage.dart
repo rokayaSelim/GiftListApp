@@ -21,7 +21,7 @@ class PledgedGiftsPage extends StatelessWidget {
           // Background image
           Positioned.fill(
             child: Image.network(
-              'https://images.pexels.com/photos/5485112/pexels-photo-5485112.jpeg',
+              'https://images.unsplash.com/photo-1511886277144-49a67943f819?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTc5fHxnaWZ0JTIwYmFja2dyb3VuZHxlbnwwfHwwfHx8MA%3D%3D',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -44,20 +44,21 @@ class PledgedGiftsPage extends StatelessWidget {
           // Main content
           pledgedGifts.isEmpty
               ? Center(
-            child: Text(
+              child: Text(
               'No gifts have been pledged yet.',
               style: TextStyle(fontSize: 18, color: Colors.grey),
             ),
           )
               : ListView.builder(
-            itemCount: pledgedGifts.length,
-            itemBuilder: (context, index) {
+              itemCount: pledgedGifts.length,
+              itemBuilder: (context, index) {
               final gift = pledgedGifts[index];
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                 child: Card(
+                  color: Colors.white.withOpacity(0.6),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(15),
                   ),
                   elevation: 6,
                   child: ListTile(
@@ -74,13 +75,14 @@ class PledgedGiftsPage extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: Icon(Icons.info_outline, color: Colors.blue),
+                          icon: Icon(Icons.info_outline, color: Colors.teal),
                           onPressed: () {
                             showDialog(
                               context: context,
                               builder: (context) {
                                 return AlertDialog(
                                   title: Text('${gift['name']} Details',style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24,color: Colors.teal),),
+                                  backgroundColor: Colors.white.withOpacity(0.6),
                                   content: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     crossAxisAlignment: CrossAxisAlignment.start,
