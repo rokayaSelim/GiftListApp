@@ -122,6 +122,16 @@ class MyDatabaseClass {
     return await mydb!.query('users');
   }
 
+  // Retrieve a user by ID
+  Future<Map<String, dynamic>?> getUserById(int userId) async {
+    Database? mydb = await database;
+    final result = await mydb!.query(
+      'users',
+      where: 'ID = ?',
+      whereArgs: [userId],
+    );
+    return result.isNotEmpty ? result.first : null;
+  }
   // Retrieve a user by email
   Future<Map<String, dynamic>?> getUserByEmail(String email) async {
     Database? mydb = await database;
@@ -132,7 +142,7 @@ class MyDatabaseClass {
     );
     return result.isNotEmpty ? result.first : null;
   }
-  Future<void> updateUserName(String email, String newUserName) async {
+  Future<void> updateUserName(int userId, String newUserName) async {
     Database? mydb = await database;
 
     // Update query to modify username based on email
@@ -141,10 +151,10 @@ class MyDatabaseClass {
       {
         'username': newUserName,
       },
-      where: 'email = ?',
-      whereArgs: [email],
+      where: 'ID = ?',
+      whereArgs: [userId],
     );
-    print("Username updated successfully for $email.");
+    print("Username updated successfully for $userId.");
   }
 
   // Update user information
@@ -190,6 +200,14 @@ class MyDatabaseClass {
       'status': 'Upcoming', // Assuming default status is 'Upcoming'
       'userId': userId,
     });
+  }
+  Future<List<Map<String, dynamic>>> getEventsByUserId(int userId) async {
+    Database? mydb = await database;
+    return await mydb!.query(
+      'events',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
   }
 
   Future<List<Map<String, dynamic>>> getGiftsForEvent(int eventId) async {
