@@ -3,7 +3,9 @@ import 'screens/SignUpPage.dart';
 import 'screens/SignInPage.dart';
 import 'screens/HomePage.dart';
 import 'screens/EventListPage.dart';
+import 'screens/UserEventListPage.dart';
 import 'screens/GiftListPage.dart';
+import 'screens/UserGiftListPage.dart';
 import 'screens/GiftDetailsPage.dart';
 import 'screens/ProfilePage.dart';
 import 'screens/MyPledgedGiftsPage.dart';
@@ -18,34 +20,20 @@ class HedieatyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Hedieaty',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
       initialRoute: '/signUp',
       routes: {
-        '/': (context) {
-          // Extract userEmail from the arguments and pass it to the ProfilePage
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
-          final userEmail = args['userEmail'] ?? ''; // Fallback to empty if not provided
-          return HomePage(userEmail: userEmail);
-        },
+        '/': (context) => HomePage(),
         '/eventList': (context) => EventListPage(),
-        '/giftList': (context) {
-          final eventId = ModalRoute.of(context)?.settings.arguments as int? ?? 0;
-          return GiftListPage(eventId: eventId); // Pass eventId dynamically
-          },
+        '/usereventList': (context) => UserEventListPage(),
+        '/userGiftList': (context)=>UserGiftListPage(),
+        '/giftList': (context) => GiftListPage(),
         '/giftDetails': (context) {
           final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
           final eventId = args['eventId'] ?? 0; // Extract eventId from arguments
           return GiftDetailsPage(eventId: eventId); // Pass giftId and eventId dynamically
         },
-        '/profile': (context) {
-          // Extract userEmail from the arguments and pass it to the ProfilePage
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
-          final userEmail = args['userEmail'] ?? ''; // Fallback to empty if not provided
-          return ProfilePage(userEmail: userEmail);
-        },
-        '/MypledgedGifts': (context) => MyPledgedGiftsPage(),
+        '/profile': (context) => ProfilePage(),
+        '/MypledgedGifts': (context) => MyPledgedGiftsPage(MypledgedGifts: [],),
         '/pledgedGifts': (context) => PledgedGiftsPage(pledgedGifts: [],),
         '/signUp': (context) => SignUpPage(),
         '/signIn': (context) => SignInPage(),
