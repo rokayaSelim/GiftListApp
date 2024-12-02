@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'PledgedGiftsPage.dart';
 import 'GiftDetailsPage.dart';
-import 'mydatabase.dart'; // Your database class
+import 'mydatabase.dart';
+import 'session_manger.dart';// Your database class
 
 class GiftListPage extends StatefulWidget {
-  final int eventId;
-
-  GiftListPage({required this.eventId});
-
   @override
   _GiftListPageState createState() => _GiftListPageState();
 }
 
 class _GiftListPageState extends State<GiftListPage> {
+  int eventId = 0; // Default value for eventId
   List<Map<String, dynamic>> gifts = []; // List of all gifts
   List<Map<String, dynamic>> pledgedGifts = []; // List of pledged gifts
   String sortBy = 'name'; // Default sorting criteria
@@ -22,14 +20,28 @@ class _GiftListPageState extends State<GiftListPage> {
   void initState() {
     super.initState();
     mydb = MyDatabaseClass();
-    mydb.init().then((_) {
-      loadGifts(); // Load all gifts from the database
+    loadEventId().then((_) {
+      mydb.init().then((_) {
+        loadGifts(); // Load all gifts from the database
+      });
     });
+  }
+
+  // Load eventId from SharedPreferences
+  Future<void> loadEventId() async {
+    eventId = await getEventId();
+    if (eventId == 0) {
+      // Handle the case where no eventId is set
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No event selected. Redirecting to event list.')),
+      );
+      Navigator.pushReplacementNamed(context, '/eventList');
+    }
   }
 
   // Load all gifts and filter pledged gifts
   void loadGifts() async {
-    final data = await mydb.getGiftsForEvent(widget.eventId); // Pass eventId to filter gifts
+    final data = await mydb.getGiftsForEvent(eventId); // Pass eventId to filter gifts
     setState(() {
       gifts = data;
       pledgedGifts = data.where((gift) => gift['isPledged'] == 1).toList(); // Filter pledged gifts
@@ -66,11 +78,12 @@ class _GiftListPageState extends State<GiftListPage> {
   }
 
   // Function to add a new gift
-  void addGift() {
+  void addGift() async{
+    eventId = await getEventId();
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GiftDetailsPage(eventId: widget.eventId),
+        builder: (context) => GiftDetailsPage(eventId: eventId),
       ),
     ).then((value) {
       if (value == true) loadGifts(); // Reload gifts if a gift was added
@@ -180,26 +193,13 @@ class _GiftListPageState extends State<GiftListPage> {
       appBar: AppBar(
         title: Text('Gift List', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.black87,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.list_alt, color: Colors.tealAccent),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => PledgedGiftsPage(pledgedGifts: pledgedGifts,),
-                ),
-              );
-            },
-          ),
-        ],
         iconTheme: IconThemeData(color: Colors.white),
       ),
       body: Stack(
         children: [
           Positioned.fill(
             child: Image.network(
-              'https://images.pexels.com/photos/5485112/pexels-photo-5485112.jpeg',
+              'https://images.unsplash.com/photo-1511886277144-49a67943f819?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTc5fHxnaWZ0JTIwYmFja2dyb3VuZHxlbnwwfHwwfHx8MA%3D%3D',
               fit: BoxFit.cover,
             ),
           ),
@@ -229,9 +229,9 @@ class _GiftListPageState extends State<GiftListPage> {
                       }).toList(),
                     ),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black87),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.6)),
                       onPressed: addGift,
-                      child: Text("Add New Gift", style: TextStyle(color: Colors.white)),
+                      child: Text("Add New Gift", style: TextStyle(color: Colors.black87)),
                     ),
                   ],
                 ),
@@ -242,6 +242,7 @@ class _GiftListPageState extends State<GiftListPage> {
                     itemBuilder: (context, index) {
                       final gift = gifts[index];
                       return Card(
+                        color: Colors.white.withOpacity(0.6),
                         margin: EdgeInsets.symmetric(vertical: 8.0),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         child: ListTile(
@@ -261,19 +262,13 @@ class _GiftListPageState extends State<GiftListPage> {
                                 onPressed: () => deleteGift(index),
                               ),
                               IconButton(
-                                icon: Icon(
-                                  Icons.volunteer_activism,
-                                  color: gift['isPledged'] == 1 ? Colors.grey : Colors.teal,
-                                ),
-                                onPressed: gift['isPledged'] == 1 ? null : () => pledgeGift(index),
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.info_outline, color: Colors.blue),
+                                icon: Icon(Icons.info_outline, color: Colors.teal),
                                 onPressed: () {
                                   showDialog(
                                     context: context,
                                     builder: (context) {
                                       return AlertDialog(
+                                        backgroundColor: Colors.white.withOpacity(0.6),
                                         title: Text('${gift['name']} Details',style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24,color: Colors.teal),),
                                         content: Column(
                                           mainAxisSize: MainAxisSize.min,
