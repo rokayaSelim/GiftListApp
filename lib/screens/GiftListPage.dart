@@ -66,6 +66,8 @@ class _GiftListPageState extends State<GiftListPage> {
   // Function to pledge a gift
   void pledgeGift(int index) async {
     final gift = gifts[index];
+    final userId = await getUserId(); // Retrieve the logged-in user ID
+
     await mydb.updateGift(
       gift['ID'],
       gift['name'],
@@ -73,6 +75,7 @@ class _GiftListPageState extends State<GiftListPage> {
       gift['description'],
       gift['price'],
       true, // Set `isPledged` to true
+      userId: userId, // Save the user ID
     );
     loadGifts(); // Reload gifts after updating
   }
@@ -147,7 +150,6 @@ class _GiftListPageState extends State<GiftListPage> {
       },
     );
   }
-
   // Function to delete a gift
   void deleteGift(int index) {
     showDialog(

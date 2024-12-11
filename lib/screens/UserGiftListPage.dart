@@ -53,6 +53,8 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
   // Function to pledge a gift
   void pledgeGift(int index) async {
     final gift = gifts[index];
+    final userId = await getUserId(); // Retrieve the logged-in user ID
+
     await mydb.updateGift(
       gift['ID'],
       gift['name'],
@@ -60,9 +62,11 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
       gift['description'],
       gift['price'],
       true, // Set `isPledged` to true
+      userId: userId, // Save the user ID
     );
     loadGifts(); // Reload gifts after updating
   }
+
   // Sort gifts by the selected criteria
   void sortGifts(String criteria) {
     setState(() {

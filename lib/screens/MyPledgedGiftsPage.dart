@@ -1,9 +1,49 @@
 import 'package:flutter/material.dart';
+import 'session_manger.dart';
+import 'mydatabase.dart';
 
-class MyPledgedGiftsPage extends StatelessWidget {
-  final List<Map<String, dynamic>> MypledgedGifts;
+class MyPledgedGiftsPage extends StatefulWidget {
+  @override
+  _MyPledgedGiftsPageState createState() => _MyPledgedGiftsPageState();
+}
 
-  MyPledgedGiftsPage({required this.MypledgedGifts});
+class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
+  List<Map<String, dynamic>> pledgedGifts = [];
+  bool isLoading = true;
+  final MyDatabaseClass _mydb = MyDatabaseClass();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPledgedGifts();
+  }
+
+  Future<void> fetchPledgedGifts() async {
+    try {
+      final userId = await getUserId();
+      if (userId != null) {
+        // Call the database function to fetch pledged gifts for the user
+
+        final gifts = await _mydb.getPledgedGiftsByUserId(userId);
+
+        setState(() {
+          pledgedGifts = gifts;
+          isLoading = false;
+        });
+      } else {
+        // Handle the case where userId is null
+        setState(() {
+          pledgedGifts = [];
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching pledged gifts: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +51,11 @@ class MyPledgedGiftsPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'Pledged Gifts',
-          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: Colors.black87,
         iconTheme: IconThemeData(color: Colors.white),
@@ -42,68 +86,87 @@ class MyPledgedGiftsPage extends StatelessWidget {
             ),
           ),
           // Main content
-          MypledgedGifts.isEmpty
+          isLoading
               ? Center(
-              child: Text(
+            child: CircularProgressIndicator(),
+          )
+              : pledgedGifts.isEmpty
+              ? Center(
+            child: Text(
               'No gifts have been pledged yet.',
               style: TextStyle(fontSize: 18, color: Colors.grey),
             ),
           )
               : ListView.builder(
-            itemCount: MypledgedGifts.length,
+            itemCount: pledgedGifts.length,
             itemBuilder: (context, index) {
-              final gift = MypledgedGifts[index];
+              final gift = pledgedGifts[index];
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(
+                    vertical: 8.0, horizontal: 16.0),
                 child: Card(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
                   elevation: 6,
                   child: ListTile(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
                     title: Text(
                       gift['name'],
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                     subtitle: Text(
                       'Category: ${gift['category']}',
                       style: TextStyle(color: Colors.teal[700]),
                     ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.info_outline, color: Colors.blue),
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog(
-                                  title: Text('${gift['name']} Details',style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24,color: Colors.teal),),
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Category: ${gift['category']}',style: TextStyle(fontSize: 18,),),
-                                      SizedBox(height: 8),
-                                      Text('Description: ${gift['description']}',style: TextStyle(fontSize: 18,)),
-                                      SizedBox(height: 8),
-                                      Text('Price: \$${gift['price'].toStringAsFixed(2)}',style: TextStyle(fontSize: 18,)),
-                                    ],
+                    trailing: IconButton(
+                      icon: Icon(Icons.info_outline, color: Colors.blue),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              title: Text(
+                                '${gift['name']} Details',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 24,
+                                    color: Colors.teal),
+                              ),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Category: ${gift['category']}',
+                                    style: TextStyle(fontSize: 18),
                                   ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: Text('Close'),
-                                    ),
-                                  ],
-                                );
-                              },
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Description: ${gift['description']}',
+                                    style: TextStyle(fontSize: 18),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Price: \$${gift['price'].toStringAsFixed(2)}',
+                                    style: TextStyle(fontSize: 18),
+                                  ),
+                                ],
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context),
+                                  child: Text('Close'),
+                                ),
+                              ],
                             );
                           },
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
                 ),
