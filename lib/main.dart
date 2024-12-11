@@ -33,7 +33,7 @@ class HedieatyApp extends StatelessWidget {
           return GiftDetailsPage(eventId: eventId); // Pass giftId and eventId dynamically
         },
         '/profile': (context) => ProfilePage(),
-        '/MypledgedGifts': (context) => MyPledgedGiftsPage(MypledgedGifts: [],),
+        '/MypledgedGifts': (context) => MyPledgedGiftsPage(),
         '/pledgedGifts': (context) => PledgedGiftsPage(pledgedGifts: [],),
         '/signUp': (context) => SignUpPage(),
         '/signIn': (context) => SignInPage(),

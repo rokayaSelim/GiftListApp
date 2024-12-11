@@ -9,6 +9,7 @@ class SignUpPage extends StatelessWidget {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
+  final TextEditingController PhoneNumberController = TextEditingController();
 
 
   final MyDatabaseClass _mydb = MyDatabaseClass();
@@ -70,7 +71,7 @@ class SignUpPage extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 40.0),
+                SizedBox(height: 20.0),
                 Form(
                   key: _formKey,
                   child: Column(
@@ -191,6 +192,25 @@ class SignUpPage extends StatelessWidget {
                           return null;
                         },
                       ),
+                    SizedBox(height: 16.0),
+                    TextFormField(
+                      controller: PhoneNumberController,
+                      style: TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.2),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(width: 2.0, color: Colors.white),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(width: 2.0, color: Colors.teal),
+                        ),
+                      ),
+                      ),
                       SizedBox(height: 24.0),
                       ElevatedButton(
                         onPressed: () async {
@@ -208,6 +228,7 @@ class SignUpPage extends StatelessWidget {
                                 emailController.text,
                                 passwordController.text,
                                 usernameController.text,
+                                PhoneNumberController.text,
                               );
 
                               // Save userId to session
