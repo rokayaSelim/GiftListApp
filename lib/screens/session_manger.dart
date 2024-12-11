@@ -5,7 +5,6 @@ Future<void> saveUserId(int userId) async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setInt('userId', userId);
 }
-
 // Retrieve user ID from shared preferences
 Future<int?> getUserId() async {
   final prefs = await SharedPreferences.getInstance();
@@ -26,14 +25,11 @@ Future<void> saveEventId(int eventId) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await prefs.setInt('eventId', eventId);
 }
-
 // Retrieve the eventId from shared preferences
 Future<int> getEventId() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   return prefs.getInt('eventId') ?? 0; // Default to 0 if no eventId is saved
 }
-
-
 // Clear user session data
 Future<void> clearUserSession() async {
   final prefs = await SharedPreferences.getInstance();

@@ -11,7 +11,9 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   String _userName = "";
-  String _userEmail = ""; // To store user email
+  String _userEmail = "";
+  String _userphone = "";
+ // To store user email
   final MyDatabaseClass _mydb = MyDatabaseClass(); // Initialize the database class
 
   @override
@@ -30,7 +32,8 @@ class _ProfilePageState extends State<ProfilePage> {
         if (user != null) {
           setState(() {
             _userName = user['username']; // Assuming 'username' field exists in your database
-            _userEmail = user['email']; // Assuming 'email' field exists in your database
+            _userEmail = user['email'];
+            _userphone = user['phoneNumber'];
           });
         }
       } else {
@@ -95,7 +98,66 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
+// Show dialog to edit the username
+  void _showEditPhoneDialog() {
+    final TextEditingController _editController =
+    TextEditingController(text: _userphone);
 
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Edit Phone Number"),
+        content: TextField(
+          controller: _editController,
+          decoration: InputDecoration(
+            labelText: "New Phone Number",
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              String newPhone = _editController.text.trim();
+              if (newPhone.isNotEmpty && newPhone != _userphone) {
+                try {
+                  final userId = await getUserId();
+                  if (userId != null) {
+                    await _mydb.updateUserPhone(userId, newPhone);
+                    setState(() {
+                      _userphone = newPhone;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Phone Number updated successfully!')),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error updating Phone Number: ${e.toString()}')),
+                  );
+                }
+              }
+              Navigator.pop(context);
+            },
+            child: Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+  void _logOut() async {
+    try {
+      await clearUserSession(); // Clear the user's session (function from session_manager.dart)
+      Navigator.pushReplacementNamed(context, '/signIn'); // Navigate to the sign-in page
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error logging out: ${e.toString()}')),
+      );
+    }
+  }
   // Bottom navigation
   int _selectedIndex = 0;
   void _onItemTapped(int index) {
@@ -176,6 +238,15 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         Divider(color: Colors.grey[300]),
                         ListTile(
+                          title: Text("Phone Number"),
+                          subtitle: Text(_userphone),
+                          trailing: IconButton(
+                            icon: Icon(Icons.edit, color: Colors.teal[400]),
+                            onPressed: _showEditPhoneDialog,
+                          ),
+                        ),
+                        Divider(color: Colors.grey[300]),
+                        ListTile(
                           title: Text("Email"),
                           subtitle: Text(_userEmail),
                           trailing: Icon(Icons.lock, color: Colors.grey[500]),
@@ -201,6 +272,15 @@ class _ProfilePageState extends State<ProfilePage> {
                           onTap: () {
                             Navigator.pushNamed(context, '/MypledgedGifts');
                           },
+                        ),
+                        Divider(color: Colors.grey[300]),
+                        ListTile(
+                          title: Text(
+                            "Logout",
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.red),
+                          ),
+                          trailing: Icon(Icons.logout, color: Colors.red),
+                          onTap: _logOut,
                         ),
                       ],
                     ),
