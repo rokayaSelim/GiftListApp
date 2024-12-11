@@ -48,7 +48,10 @@ class MyDatabaseClass {
             price REAL,
             isPledged INTEGER DEFAULT 0,
             eventId INTEGER NOT NULL,
+            PledgedBy INTEGER NULL,
+            imagePath TEXT,
             FOREIGN KEY(eventId) REFERENCES events(ID)
+            FOREIGN KEY(PledgedBy) REFERENCES users(ID)
           )
         ''');
 
@@ -58,7 +61,8 @@ class MyDatabaseClass {
             ID INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
-            username TEXT NOT NULL
+            username TEXT NOT NULL,
+            phoneNumber TEXT NOT NULL
           )
         ''');
         await mydb.execute('''
@@ -78,7 +82,7 @@ class MyDatabaseClass {
     Database? mydb = await database;
     await mydb!.insert('friends', {
       'userId': userId,
-      'friendId': friendId,
+      'ID': friendId,
     });
   }
 
@@ -87,32 +91,39 @@ class MyDatabaseClass {
     Database? mydb = await database;
     await mydb!.delete(
       'friends',
-      where: 'userId = ? AND friendId = ?',
+      where: 'userId = ? AND ID = ?',
       whereArgs: [userId, friendId],
     );
   }
-
+  Future<List<Map<String, dynamic>>> getPledgedGiftsByUserId(int userId) async {
+    Database? mydb = await database;
+    return await mydb!.query(
+      'gifts',
+      where: 'isPledged = 1 AND PledgedBy = ?',
+      whereArgs: [userId],
+    );
+  }
   // Fetch added friends for a specific user
   Future<List<Map<String, dynamic>>> getFriends(int userId) async {
     Database? mydb = await database;
     final result = await mydb!.rawQuery('''
     SELECT u.ID, u.username, u.email
     FROM friends f
-    INNER JOIN users u ON f.friendId = u.ID
+    INNER JOIN users u ON f.ID = u.ID
     WHERE f.userId = ?
   ''', [userId]);
 
     return result;
   }
 
-
   // Insert a user into the database
-  Future<void> addUser(String email, String password, String username) async {
+  Future<void> addUser(String email, String password, String username,String number) async {
     Database? mydb = await database;
     await mydb!.insert('users', {
       'username': username,
       'email': email,
       'password': password,
+      'phoneNumber': number,
     });
   }
 
@@ -156,6 +167,21 @@ class MyDatabaseClass {
     );
     print("Username updated successfully for $userId.");
   }
+  Future<void> updateUserPhone(int userId, String newUserPhone) async {
+    Database? mydb = await database;
+
+    // Update query to modify username based on email
+    await mydb!.update(
+      'users',
+      {
+        'phoneNumber': newUserPhone,
+      },
+      where: 'ID = ?',
+      whereArgs: [userId],
+    );
+    print("Username updated successfully for $userId.");
+  }
+
 
   // Update user information
   Future<void> updateUser(int id, String email, String username, String password) async {
@@ -257,7 +283,7 @@ class MyDatabaseClass {
   }
 
   // Update an existing gift in the database
-  Future<void> updateGift(int id, String name, String category, String description, double price, bool isPledged) async {
+  Future<void> updateGift(int id, String name, String category, String description, double price, bool isPledged, {int? userId}) async {
     Database? mydb = await database;
     await mydb!.update(
       'gifts',
@@ -267,6 +293,7 @@ class MyDatabaseClass {
         'description': description,
         'price': price,
         'isPledged': isPledged ? 1 : 0,
+        'PledgedBy': userId,
       },
       where: 'ID = ?',
       whereArgs: [id],
