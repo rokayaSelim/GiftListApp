@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'PledgedGiftsPage.dart';
 import 'mydatabase.dart';
-import 'session_manger.dart';// Your database class
+import 'session_manger.dart';
+import 'firebase.dart';// Your database class
 
 class UserGiftListPage extends StatefulWidget {
 
@@ -13,25 +14,24 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
   int eventId = 0;
   List<Map<String, dynamic>> gifts = []; // List of all gifts
   List<Map<String, dynamic>> pledgedGifts = []; // List of pledged gifts
-  String sortBy = 'name'; // Default sorting criteria
+  String sortBy = 'name';
+  late final FirestoreHelper firestoreHelper;// Default sorting criteria
   late final MyDatabaseClass mydb; // Database instance
 
   @override
   void initState() {
     super.initState();
-    mydb = MyDatabaseClass();
-    mydb.init().then((_) {
-      loadGifts(); // Load all gifts from the database
-    });
+    firestoreHelper = FirestoreHelper();
+    loadGifts(); // Load events during initialization
   }
-
   // Load all gifts and filter pledged gifts
   void loadGifts() async {
-    eventId = await getEventId();
-    final data = await mydb.getGiftsForEvent(eventId); // Pass eventId to filter gifts
+    eventId = await getEventId(); // Get the eventId, perhaps from shared preferences or passed
+    final data = await firestoreHelper.getGiftsForEvent(eventId); // Fetch gifts for the event
+
     setState(() {
       gifts = data;
-      pledgedGifts = data.where((gift) => gift['isPledged'] == 1).toList(); // Filter pledged gifts
+      pledgedGifts = data.where((gift) => gift['isPledged'] == true).toList(); // Filter pledged gifts
     });
   }
 
@@ -51,20 +51,35 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
     }
   }
   // Function to pledge a gift
+// Function to pledge a gift
   void pledgeGift(int index) async {
-    final gift = gifts[index];
+    final gift = gifts[index]; // Get the selected gift from the list
     final userId = await getUserId(); // Retrieve the logged-in user ID
 
-    await mydb.updateGift(
-      gift['ID'],
-      gift['name'],
-      gift['category'],
-      gift['description'],
-      gift['price'],
-      true, // Set `isPledged` to true
-      userId: userId, // Save the user ID
-    );
-    loadGifts(); // Reload gifts after updating
+    // Create an updated gift with isPledged set to true
+    final updatedGift = {
+      'ID': gift['ID'],
+      'name': gift['name'],
+      'category': gift['category'],
+      'description': gift['description'],
+      'price': gift['price'],
+      'isPledged': true, // Set 'isPledged' to true
+      'PledgedBy': userId, // Save the user ID as the person pledging the gift
+    };
+
+    // Update the gift in Firestore
+    try {
+      await firestoreHelper.updateGift(updatedGift); // Call FirestoreHelper's updateGift method
+      loadGifts(); // Reload gifts after updating
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gift pledged successfully!')),
+      );
+    } catch (e) {
+      print('Error pledging gift: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error pledging gift')),
+      );
+    }
   }
 
   // Sort gifts by the selected criteria
@@ -147,16 +162,18 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         child: ListTile(
                           title: Text(gift['name'], style: TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('Category: ${gift['category']} | Status: ${gift['isPledged'] == 1 ? 'Pledged' : 'Available'}'),
+                          subtitle: Text('Category: ${gift['category']} | Status: ${gift['isPledged'] == true ? 'Pledged' : 'Available'}'),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
                                 icon: Icon(
                                   Icons.volunteer_activism,
-                                  color: gift['isPledged'] == 1 ? Colors.grey : Colors.teal,
+                                  color: gift['isPledged'] == true ? Colors.grey : Colors.teal,
                                 ),
-                                onPressed: gift['isPledged'] == 1 ? null : () => pledgeGift(index),
+                                onPressed: gift['isPledged'] == true
+                                    ? null // Disable the button if the gift is already pledged
+                                    : () => pledgeGift(index),
                               ),
                               IconButton(
                                 icon: Icon(Icons.info_outline, color: Colors.teal),

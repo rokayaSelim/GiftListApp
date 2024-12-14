@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'UserGiftListPage.dart';
 import 'mydatabase.dart';
 import 'session_manger.dart';
+import 'firebase.dart';
 
 class UserEventListPage extends StatefulWidget {
   @override
@@ -11,23 +12,34 @@ class UserEventListPage extends StatefulWidget {
 class _UserEventListPageState extends State<UserEventListPage> {
   List<Map<String, dynamic>> events = [];
   String sortBy = 'name';
-  String searchQuery = ''; // Search query
+  String searchQuery = '';
+  late final FirestoreHelper firestoreHelper;// Search query
   late final MyDatabaseClass mydb;
 
   @override
   void initState() {
     super.initState();
-    mydb = MyDatabaseClass();
-    mydb.init().then((_) {
-      loadEvents(); // Load events during initialization
-    });
+    firestoreHelper = FirestoreHelper();
+    loadEvents(); // Load events during initialization
   }
 
-  // Load events from the database with an optional search query
+  // Load events from Firestore with an optional search query
   void loadEvents({String searchQuery = ''}) async {
-    final userId = await getFriendId();
+    final userId = await getFriendId(); // Assuming this method returns the friend's userId
+    final userIdStr = userId.toString();
     if (userId != null) {
-      final data = await mydb.getEventsByUserId(userId);
+      print("Loading events for userId: $userId");
+
+      // Fetch events from Firestore
+      final data = await firestoreHelper.getEventsByUserId(userIdStr);
+
+      // Debug log to check if events are fetched
+      if (data.isEmpty) {
+        print('No events found for user $userId');
+      } else {
+        print('Found ${data.length} events for user $userId');
+      }
+
       setState(() {
         events = data.where((event) {
           return event['name'].toLowerCase().contains(searchQuery.toLowerCase()) ||
@@ -40,7 +52,6 @@ class _UserEventListPageState extends State<UserEventListPage> {
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
-
   int _selectedIndex = 0;
   void _onItemTapped(int index) {
     setState(() {
