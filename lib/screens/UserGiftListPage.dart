@@ -9,7 +9,6 @@ class UserGiftListPage extends StatefulWidget {
   @override
   _UserGiftListPageState createState() => _UserGiftListPageState();
 }
-
 class _UserGiftListPageState extends State<UserGiftListPage> {
   int eventId = 0;
   List<Map<String, dynamic>> gifts = []; // List of all gifts

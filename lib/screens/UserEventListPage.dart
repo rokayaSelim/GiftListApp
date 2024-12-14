@@ -22,7 +22,6 @@ class _UserEventListPageState extends State<UserEventListPage> {
     firestoreHelper = FirestoreHelper();
     loadEvents(); // Load events during initialization
   }
-
   // Load events from Firestore with an optional search query
   void loadEvents({String searchQuery = ''}) async {
     final userId = await getFriendId(); // Assuming this method returns the friend's userId
