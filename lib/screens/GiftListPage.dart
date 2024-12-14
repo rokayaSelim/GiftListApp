@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'PledgedGiftsPage.dart';
 import 'GiftDetailsPage.dart';
 import 'mydatabase.dart';
-import 'session_manger.dart';// Your database class
+import 'session_manger.dart';
+import 'firebase.dart';// Your database class
 
 class GiftListPage extends StatefulWidget {
   @override
@@ -92,8 +92,6 @@ class _GiftListPageState extends State<GiftListPage> {
       if (value == true) loadGifts(); // Reload gifts if a gift was added
     });
   }
-
-
   // Function to edit a gift
   void editGift(int index) {
     showDialog(
@@ -106,6 +104,7 @@ class _GiftListPageState extends State<GiftListPage> {
 
         return AlertDialog(
           title: Text('Edit Gift'),
+          backgroundColor: Colors.white.withOpacity(0.6),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -134,15 +133,39 @@ class _GiftListPageState extends State<GiftListPage> {
           ),
           actions: [
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                // Update the local database (SQLite)
                 mydb.updateGift(gifts[index]['ID'], name, category, description, price, gifts[index]['isPledged'] == 1);
-                Navigator.pop(context);
-                loadGifts(); // Reload gifts
+
+                // Get the updated gift data
+                final updatedGift = {
+                  'ID': gifts[index]['ID'],
+                  'name': name,
+                  'category': category,
+                  'description': description,
+                  'price': price,
+                  'isPledged': gifts[index]['isPledged'],
+                };
+
+                // Check if the gift exists in Firestore
+                final firestoreHelper = FirestoreHelper();
+                final giftSnapshot = await firestoreHelper.getGiftById(gifts[index]['ID']);
+
+                if (giftSnapshot.exists) {
+                  // If the gift exists, update it in Firestore
+                  await firestoreHelper.updateGift(updatedGift); // Update Firestore
+                  print('Gift updated in Firestore');
+                } else {
+                  print('Gift with ID ${gifts[index]['ID']} does not exist in Firestore. No update performed.');
+                }
+
+                loadGifts(); // Reload gifts from the local database
+                Navigator.pop(context); // Close the dialog
               },
               child: Text('Save'),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(context), // Close the dialog without saving
               child: Text('Cancel'),
             ),
           ],
@@ -158,12 +181,44 @@ class _GiftListPageState extends State<GiftListPage> {
         return AlertDialog(
           title: Text('Are you sure?'),
           content: Text('Do you really want to delete this gift?'),
+          backgroundColor: Colors.white.withOpacity(0.6),
           actions: [
             TextButton(
-              onPressed: () {
-                mydb.deleteGift(gifts[index]['ID']); // Delete the gift from the database
-                loadGifts(); // Reload gifts
-                Navigator.pop(context);
+              onPressed: () async {
+                try {
+                  final giftID = gifts[index]['ID'];
+
+                  // Ensure the gift ID is not null
+                  if (giftID == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: Gift ID is null. Unable to delete.')),
+                    );
+                    Navigator.pop(context);
+                    return;
+                  }
+
+                  // Delete the gift from Firebase
+                  final firestoreHelper = FirestoreHelper();
+                  await firestoreHelper.deleteGift(giftID.toString());
+
+                  // Delete the gift locally from SQLite
+                  await mydb.deleteGift(giftID);
+
+                  // Reload the list of gifts
+                  loadGifts();
+
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Gift deleted successfully!')),
+                  );
+                } catch (e) {
+                  // Handle any errors
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error deleting gift: ${e.toString()}')),
+                  );
+                } finally {
+                  Navigator.pop(context);
+                }
               },
               child: Text('Yes', style: TextStyle(color: Colors.red)),
             ),
@@ -176,7 +231,6 @@ class _GiftListPageState extends State<GiftListPage> {
       },
     );
   }
-
   // Sort gifts by the selected criteria
   void sortGifts(String criteria) {
     setState(() {
