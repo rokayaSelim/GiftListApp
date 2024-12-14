@@ -56,7 +56,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text('Publish Gift'),
-            content: Text('Do you want to publish this gift to friends?'),
+            content: Text('Do you want to publish this gift to your friends?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
@@ -71,11 +71,19 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
         },
       );
       // Default to false if user cancels
-      if (shouldPublish == null) return;
+      if (shouldPublish == null){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gift saved for you only!')),
+        );
+        return;
+      }
 
       // Publish to Firestore if requested
       if (shouldPublish) {
         await firestoreHelper.syncGifts([newGift]);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gift published to Friends!')),
+        );
       }
       Navigator.pop(context, true); // Return to the previous page
     }
