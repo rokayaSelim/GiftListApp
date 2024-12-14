@@ -106,8 +106,9 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
                     vertical: 8.0, horizontal: 16.0),
                 child: Card(
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(15),
                   ),
+                  color: Colors.white.withOpacity(0.6),
                   elevation: 6,
                   child: ListTile(
                     contentPadding: EdgeInsets.symmetric(
@@ -122,7 +123,7 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
                       style: TextStyle(color: Colors.teal[700]),
                     ),
                     trailing: IconButton(
-                      icon: Icon(Icons.info_outline, color: Colors.blue),
+                      icon: Icon(Icons.info_outline, color: Colors.teal),
                       onPressed: () {
                         showDialog(
                           context: context,
