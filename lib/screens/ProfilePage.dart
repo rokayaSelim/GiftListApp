@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'mydatabase.dart';
-import 'session_manger.dart'; // Import session manager for shared preferences
+import 'session_manger.dart';
+import 'firebase.dart';// Import session manager for shared preferences
 
 class ProfilePage extends StatefulWidget {
   ProfilePage({Key? key}) : super(key: key); // No need to pass userEmail or userId
@@ -64,6 +65,7 @@ class _ProfilePageState extends State<ProfilePage> {
             border: OutlineInputBorder(),
           ),
         ),
+        backgroundColor: Colors.white.withOpacity(0.6),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -114,6 +116,7 @@ class _ProfilePageState extends State<ProfilePage> {
             border: OutlineInputBorder(),
           ),
         ),
+        backgroundColor: Colors.white.withOpacity(0.6),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -148,6 +151,57 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
+  Future<void> _deleteUserAccount() async {
+    try {
+      final userId = await getUserId(); // Get user ID from session
+      if (userId != null) {
+        final userIdStr = userId.toString();
+        await _mydb.deleteUser(userId); // Delete user from local database
+        final firestoreHelper = FirestoreHelper();
+        await firestoreHelper.deleteUser(userIdStr); // Delete user from Firestore
+        await clearUserSession(); // Clear user session locally
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Account deleted successfully!')),
+        );
+        Navigator.pushReplacementNamed(context, '/signIn'); // Navigate to sign-in page
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: User ID not found.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting account: ${e.toString()}')),
+      );
+    }
+  }
+
+  void _showDeleteUserDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Delete Account"),
+        content: Text("Are you sure you want to delete your account? This action cannot be undone."),
+        backgroundColor: Colors.white.withOpacity(0.6),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close the dialog
+              await _deleteUserAccount(); // Delete the user
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+            child: Text("Delete"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _logOut() async {
     try {
       await clearUserSession(); // Clear the user's session (function from session_manager.dart)
@@ -187,6 +241,7 @@ class _ProfilePageState extends State<ProfilePage> {
           style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.black87,
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: Stack(
         children: [
@@ -281,6 +336,15 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           trailing: Icon(Icons.logout, color: Colors.red),
                           onTap: _logOut,
+                        ),
+                        Divider(color: Colors.grey[300]),
+                        ListTile(
+                          title: Text(
+                            "Delete Account",
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.red),
+                          ),
+                          trailing: Icon(Icons.delete, color: Colors.red),
+                          onTap: _showDeleteUserDialog, // Call the delete dialog
                         ),
                       ],
                     ),
