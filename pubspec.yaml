@@ -34,6 +34,15 @@ dependencies:
   sqflite:
   path:
   shared_preferences: ^2.1.2
+  firebase_messaging:
+  firebase_core:
+  firebase_auth:
+  cloud_firestore:
+  firebase_database:
+  firebase_storage:
+  cloud_functions:
+  firebase_analytics:
+  provider:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
