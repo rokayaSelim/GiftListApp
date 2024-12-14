@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'mydatabase.dart';
+import 'firebase.dart';
 
 class GiftDetailsPage extends StatefulWidget {
-  final Map<String, dynamic>? gift; // Existing gift data for editing
   final int eventId; // Event ID to associate the gift with
 
-  GiftDetailsPage({this.gift, required this.eventId});
+  GiftDetailsPage({required this.eventId});
 
   @override
   _GiftDetailsPageState createState() => _GiftDetailsPageState();
@@ -20,41 +20,74 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill form if editing an existing gift
-    name = widget.gift?['name'] ?? '';
-    category = widget.gift?['category'] ?? 'Electronics';
-    description = widget.gift?['description'] ?? '';
-    price = widget.gift?['price']?.toDouble() ?? 0.0;
-    isPledged = widget.gift?['isPledged'] == 1;
+    // Initialize default values for adding a new gift
+    name = '';
+    category = 'Electronics';
+    description = '';
+    price = 0.0;
   }
 
   void saveGift() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+
       final db = MyDatabaseClass();
-      if (widget.gift == null) {
-        // Adding a new gift
-        await db.addGift(name, category, description, price, widget.eventId);
-      } else {
-        // Editing an existing gift
-        await db.updateGift(
-          widget.gift!['ID'],
-          name,
-          category,
-          description,
-          price,
-          isPledged,
-        );
+      final firestoreHelper = FirestoreHelper();
+
+      // Add the gift to the SQL database and retrieve the generated ID
+      final sqlGiftId = await db.addGift(name, category, description, price, widget.eventId);
+
+      // Create a new gift object with the SQL-generated ID
+      final newGift = {
+        'ID': sqlGiftId, // Use the ID from SQL
+        'name': name,
+        'category': category,
+        'description': description,
+        'price': price,
+        'eventId': widget.eventId,
+        'PledgedBy': null,
+        'isPledged': isPledged,
+        'imagePath': null,
+      };
+
+      // Confirmation dialog to ask the user about publishing
+      final shouldPublish = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Publish Gift'),
+            content: Text('Do you want to publish this gift to friends?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text('No'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text('Yes'),
+              ),
+            ],
+          );
+        },
+      );
+      // Default to false if user cancels
+      if (shouldPublish == null) return;
+
+      // Publish to Firestore if requested
+      if (shouldPublish) {
+        await firestoreHelper.syncGifts([newGift]);
       }
       Navigator.pop(context, true); // Return to the previous page
     }
   }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.gift == null ? 'Add New Gift' : 'Edit Gift',
+          'Add New Gift' ,
           style: TextStyle(
             color: Colors.white,
             fontSize: 24,
@@ -175,7 +208,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
                             ),
                           ),
                           child: Text(
-                            widget.gift == null ? 'Add Gift' : 'Save Changes',
+                            'Add Gift',
                             style: TextStyle(color: Colors.teal, fontSize: 16),
                           ),
                         ),
