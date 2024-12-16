@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'session_manger.dart';
 import 'mydatabase.dart';
+import 'firebase.dart';
 
 class MyPledgedGiftsPage extends StatefulWidget {
   @override
@@ -10,7 +11,6 @@ class MyPledgedGiftsPage extends StatefulWidget {
 class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
   List<Map<String, dynamic>> pledgedGifts = [];
   bool isLoading = true;
-  final MyDatabaseClass _mydb = MyDatabaseClass();
 
   @override
   void initState() {
@@ -20,18 +20,17 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
 
   Future<void> fetchPledgedGifts() async {
     try {
-      final userId = await getUserId();
+      final userId = await getUserId(); // Assuming you have a function to get the current user's ID
       if (userId != null) {
-        // Call the database function to fetch pledged gifts for the user
-
-        final gifts = await _mydb.getPledgedGiftsByUserId(userId);
+        // Fetch pledged gifts for the user using FirestoreHelper
+        final gifts = await FirestoreHelper().getPledgedGiftsByUserId(userId);
 
         setState(() {
           pledgedGifts = gifts;
           isLoading = false;
         });
       } else {
-        // Handle the case where userId is null
+        // Handle case when userId is null
         setState(() {
           pledgedGifts = [];
           isLoading = false;
@@ -44,7 +43,6 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,47 +86,64 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
           // Main content
           isLoading
               ? Center(
-            child: CircularProgressIndicator(),
-          )
+                child: CircularProgressIndicator(),
+              )
               : pledgedGifts.isEmpty
               ? Center(
-            child: Text(
+                child: Text(
               'No gifts have been pledged yet.',
               style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
+               ),
           )
               : ListView.builder(
-            itemCount: pledgedGifts.length,
-            itemBuilder: (context, index) {
-              final gift = pledgedGifts[index];
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 8.0, horizontal: 16.0),
-                child: Card(
-                  shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  ),
-                  color: Colors.white.withOpacity(0.6),
-                  elevation: 6,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    title: Text(
-                      gift['name'],
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 18),
+                itemCount: pledgedGifts.length,
+                itemBuilder: (context, index) {
+                  final gift = pledgedGifts[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 16.0),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
                     ),
-                    subtitle: Text(
-                      'Category: ${gift['category']}',
-                      style: TextStyle(color: Colors.teal[700]),
-                    ),
-                    trailing: IconButton(
+                    color: Colors.white.withOpacity(0.6),
+                    elevation: 6,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      leading: gift['imagePath'] != null && gift['imagePath'].isNotEmpty
+                          ? Image.network(
+                            gift['imagePath'], // Replace with the local file path if needed.
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              Icons.broken_image,
+                              color: Colors.grey,
+                            ),
+                          )
+                          : Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+                      title: Text(
+                        gift['name'],
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 18),
+                      ),
+                      subtitle: Text(
+                        'Category: ${gift['category']}',
+                        style: TextStyle(color: Colors.teal[700]),
+                      ),
+                      trailing: IconButton(
                       icon: Icon(Icons.info_outline, color: Colors.teal),
                       onPressed: () {
                         showDialog(
                           context: context,
                           builder: (context) {
                             return AlertDialog(
+                              backgroundColor: Colors.white.withOpacity(0.6),
                               title: Text(
                                 '${gift['name']} Details',
                                 style: TextStyle(

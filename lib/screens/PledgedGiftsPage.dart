@@ -62,6 +62,22 @@ class PledgedGiftsPage extends StatelessWidget {
                   ),
                   elevation: 6,
                   child: ListTile(
+                    leading: gift['imagePath'] != null && gift['imagePath'].isNotEmpty
+                        ? Image.network(
+                      gift['imagePath'], // Replace with the local file path if needed.
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.broken_image,
+                        color: Colors.grey,
+                      ),
+                    )
+                        : Icon(
+                      Icons.image_not_supported,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
                     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     title: Text(
                       gift['name'],
