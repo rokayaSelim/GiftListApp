@@ -20,7 +20,6 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
   @override
   void initState() {
     super.initState();
-    // Initialize default values for adding a new gift
     name = '';
     category = 'Electronics';
     description = '';
@@ -71,7 +70,6 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
           );
         },
       );
-
       // Default to false if user cancels
       if (shouldPublish == null) {
         ScaffoldMessenger.of(context).showSnackBar(
