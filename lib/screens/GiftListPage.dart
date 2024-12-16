@@ -302,6 +302,22 @@ class _GiftListPageState extends State<GiftListPage> {
                         margin: EdgeInsets.symmetric(vertical: 8.0),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         child: ListTile(
+                          leading: gift['imagePath'] != null && gift['imagePath'].isNotEmpty
+                              ? Image.network(
+                                gift['imagePath'], // Replace with the local file path if needed.
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                ),
+                              )
+                                  : Icon(
+                                Icons.image_not_supported,
+                                size: 50,
+                                color: Colors.grey,
+                              ),
                           title: Text(gift['name'], style: TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text('Category: ${gift['category']} | Status: ${gift['isPledged'] == 1 ? 'Pledged' : 'Available'}'),
                           trailing: Row(
@@ -312,7 +328,7 @@ class _GiftListPageState extends State<GiftListPage> {
                                   icon: Icon(Icons.edit),
                                   onPressed: () => editGift(index),
                                 ),
-                              if (gift['isPledged'] == 0)
+
                               IconButton(
                                 icon: Icon(Icons.delete, color: Colors.red),
                                 onPressed: () => deleteGift(index),
