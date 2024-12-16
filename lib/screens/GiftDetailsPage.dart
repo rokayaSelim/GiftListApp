@@ -77,7 +77,6 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
         );
         return;
       }
-
       // Publish to Firestore if requested
       if (shouldPublish) {
         await firestoreHelper.syncGifts([newGift]);
