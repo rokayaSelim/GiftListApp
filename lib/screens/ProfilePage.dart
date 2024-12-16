@@ -14,13 +14,15 @@ class _ProfilePageState extends State<ProfilePage> {
   String _userName = "";
   String _userEmail = "";
   String _userphone = "";
+  late String imagePath;
  // To store user email
   final MyDatabaseClass _mydb = MyDatabaseClass(); // Initialize the database class
 
   @override
   void initState() {
     super.initState();
-    _fetchUserDetails(); // Fetch user details when the page loads
+    _fetchUserDetails();
+    imagePath = '';// Fetch user details when the page loads
   }
 
   // Fetch user details (username and email) from the database based on userId
@@ -35,6 +37,7 @@ class _ProfilePageState extends State<ProfilePage> {
             _userName = user['username']; // Assuming 'username' field exists in your database
             _userEmail = user['email'];
             _userphone = user['phoneNumber'];
+            imagePath = user['imagePath'] ?? '';
           });
         }
       } else {
@@ -46,6 +49,57 @@ class _ProfilePageState extends State<ProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error fetching user details: ${e.toString()}')),
       );
+    }
+  }
+  void showAddImageDialog() async {
+    final TextEditingController _imageUrlController = TextEditingController();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add Profile Picture URL'),
+          content: TextField(
+            controller: _imageUrlController,
+            decoration: InputDecoration(
+              hintText: 'Enter image URL',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(_imageUrlController.text.trim());
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null && result.isNotEmpty) {
+      final userId = await getUserId();
+      if (userId != null) {
+        setState(() {
+          imagePath = result;
+        });
+
+        // Save to the local database
+        await _mydb.updateUserProfilePic(userId, imagePath);
+
+        // Save to Firestore
+        final firestoreHelper = FirestoreHelper();
+        await firestoreHelper.updateUserProfilePic(userId.toString(), imagePath);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile picture updated successfully!')),
+        );
+      }
     }
   }
 
@@ -234,6 +288,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -245,6 +300,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       body: Stack(
         children: [
+          // Background image positioned behind the scrollable content
           Positioned.fill(
             child: Image.network(
               'https://images.unsplash.com/photo-1511886277144-49a67943f819?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTc5fHxnaWZ0JTIwYmFja2dyb3VuZHxlbnwwfHwwfHx8MA%3D%3D',
@@ -261,96 +317,158 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
           ),
-          _userName.isEmpty
-          ? Center(child: CircularProgressIndicator()) // Show loading indicator while fetching data
-          : Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Card(
-                  color: Colors.white.withOpacity(0.6),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.teal[100],
-                          child: Icon(Icons.person, size: 50, color: Colors.black87),
-                        ),
-                        SizedBox(height: 15),
-                        ListTile(
-                          title: Text("Username"),
-                          subtitle: Text(_userName),
-                          trailing: IconButton(
-                            icon: Icon(Icons.edit, color: Colors.teal[400]),
-                            onPressed: _showEditUsernameDialog,
+          // Scrollable content wrapped in SingleChildScrollView
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Card(
+                    color: Colors.white.withOpacity(0.6),
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(25.0),
+                      child: screenHeight > 600
+                          ? Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundImage: imagePath.isNotEmpty
+                                ? NetworkImage(imagePath)
+                                : null,
+                            child: imagePath.isEmpty
+                                ? Icon(Icons.person, size: 50, color: Colors.black87)
+                                : null,
+                            backgroundColor: Colors.teal[100],
                           ),
-                        ),
-                        Divider(color: Colors.grey[300]),
-                        ListTile(
-                          title: Text("Phone Number"),
-                          subtitle: Text(_userphone),
-                          trailing: IconButton(
-                            icon: Icon(Icons.edit, color: Colors.teal[400]),
-                            onPressed: _showEditPhoneDialog,
+                          ListTile(
+                            title: Text("Profile Picture"),
+                            subtitle: Text(imagePath.isNotEmpty
+                                ? "Change your profile picture"
+                                : "Add your profile picture"),
+                            trailing: Icon(Icons.add_photo_alternate, color: Colors.teal[400]),
+                            onTap: showAddImageDialog,
                           ),
-                        ),
-                        Divider(color: Colors.grey[300]),
-                        ListTile(
-                          title: Text("Email"),
-                          subtitle: Text(_userEmail),
-                          trailing: Icon(Icons.lock, color: Colors.grey[500]),
-                        ),
-                        Divider(color: Colors.grey[300]),
-                        ListTile(
-                          title: Text(
-                            "Your Events",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.teal[800]),
+                          Divider(color: Colors.grey[300]),
+                          ListTile(
+                            title: Text("Username"),
+                            subtitle: Text(_userName),
+                            trailing: IconButton(
+                              icon: Icon(Icons.edit, color: Colors.teal[400]),
+                              onPressed: _showEditUsernameDialog,
+                            ),
                           ),
-                          trailing: Icon(Icons.arrow_forward_ios, color: Colors.teal[400]),
-                          onTap: () {
-                            Navigator.pushNamed(context, '/eventList');
-                          },
-                        ),
-                        Divider(color: Colors.grey[300]),
-                        ListTile(
-                          title: Text(
-                            "My Pledged Gifts",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.teal[800]),
+                          Divider(color: Colors.grey[300]),
+                          ListTile(
+                            title: Text("Phone Number"),
+                            subtitle: Text(_userphone),
+                            trailing: IconButton(
+                              icon: Icon(Icons.edit, color: Colors.teal[400]),
+                              onPressed: _showEditPhoneDialog,
+                            ),
                           ),
-                          trailing: Icon(Icons.arrow_forward_ios, color: Colors.teal[400]),
-                          onTap: () {
-                            Navigator.pushNamed(context, '/MypledgedGifts');
-                          },
-                        ),
-                        Divider(color: Colors.grey[300]),
-                        ListTile(
-                          title: Text(
-                            "Logout",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.red),
+                          Divider(color: Colors.grey[300]),
+                          ListTile(
+                            title: Text("Email"),
+                            subtitle: Text(_userEmail),
+                            trailing: Icon(Icons.lock, color: Colors.grey[500]),
                           ),
-                          trailing: Icon(Icons.logout, color: Colors.red),
-                          onTap: _logOut,
-                        ),
-                        Divider(color: Colors.grey[300]),
-                        ListTile(
-                          title: Text(
-                            "Delete Account",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.red),
+                          Divider(color: Colors.grey[300]),
+                          ListTile(
+                            title: Text(
+                              "Your Events",
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.teal[800]),
+                            ),
+                            trailing: Icon(Icons.arrow_forward_ios, color: Colors.teal[400]),
+                            onTap: () {
+                              Navigator.pushNamed(context, '/eventList');
+                            },
                           ),
-                          trailing: Icon(Icons.delete, color: Colors.red),
-                          onTap: _showDeleteUserDialog, // Call the delete dialog
-                        ),
-                      ],
+                          Divider(color: Colors.grey[300]),
+                          ListTile(
+                            title: Text(
+                              "My Pledged Gifts",
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.teal[800]),
+                            ),
+                            trailing: Icon(Icons.arrow_forward_ios, color: Colors.teal[400]),
+                            onTap: () {
+                              Navigator.pushNamed(context, '/MypledgedGifts');
+                            },
+                          ),
+                          Divider(color: Colors.grey[300]),
+                          ListTile(
+                            title: Text(
+                              "Logout",
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.red),
+                            ),
+                            trailing: Icon(Icons.logout, color: Colors.red),
+                            onTap: _logOut,
+                          ),
+                          Divider(color: Colors.grey[300]),
+                          ListTile(
+                            title: Text(
+                              "Delete Account",
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.red),
+                            ),
+                            trailing: Icon(Icons.delete, color: Colors.red),
+                            onTap: _showDeleteUserDialog,
+                          ),
+                        ],
+                      )
+                          : Column( // For smaller screens
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundImage: imagePath.isNotEmpty
+                                ? NetworkImage(imagePath)
+                                : null,
+                            child: imagePath.isEmpty
+                                ? Icon(Icons.person, size: 50, color: Colors.black87)
+                                : null,
+                            backgroundColor: Colors.teal[100],
+                          ),
+                          ListTile(
+                            title: Text("Profile Picture"),
+                            subtitle: Text(imagePath.isNotEmpty
+                                ? "Change your profile picture"
+                                : "Add your profile picture"),
+                            trailing: Icon(Icons.add_photo_alternate, color: Colors.teal[400]),
+                            onTap: showAddImageDialog,
+                          ),
+                          Divider(color: Colors.grey[300]),
+                          ListTile(
+                            title: Text("Username"),
+                            subtitle: Text(_userName),
+                            trailing: IconButton(
+                              icon: Icon(Icons.edit, color: Colors.teal[400]),
+                              onPressed: _showEditUsernameDialog,
+                            ),
+                          ),
+                          Divider(color: Colors.grey[300]),
+                          ListTile(
+                            title: Text("Phone Number"),
+                            subtitle: Text(_userphone),
+                            trailing: IconButton(
+                              icon: Icon(Icons.edit, color: Colors.teal[400]),
+                              onPressed: _showEditPhoneDialog,
+                            ),
+                          ),
+                          Divider(color: Colors.grey[300]),
+                          ListTile(
+                            title: Text("Email"),
+                            subtitle: Text(_userEmail),
+                            trailing: Icon(Icons.lock, color: Colors.grey[500]),
+                          ),
+                          Divider(color: Colors.grey[300]),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
