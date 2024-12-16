@@ -34,7 +34,6 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
       pledgedGifts = data.where((gift) => gift['isPledged'] == true).toList(); // Filter pledged gifts
     });
   }
-
   int _selectedIndex = 0;
   void _onItemTapped(int index) {
     setState(() {
