@@ -13,7 +13,7 @@ class GiftDetailsPage extends StatefulWidget {
 
 class _GiftDetailsPageState extends State<GiftDetailsPage> {
   final _formKey = GlobalKey<FormState>();
-  late String name, category, description;
+  late String name, category, description, imagePath;
   late double price;
   bool isPledged = false;
 
@@ -25,6 +25,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
     category = 'Electronics';
     description = '';
     price = 0.0;
+    imagePath = '';
   }
 
   void saveGift() async {
@@ -35,7 +36,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
       final firestoreHelper = FirestoreHelper();
 
       // Add the gift to the SQL database and retrieve the generated ID
-      final sqlGiftId = await db.addGift(name, category, description, price, widget.eventId);
+      final sqlGiftId = await db.addGift(name, category, description, price, widget.eventId,imagePath);
 
       // Create a new gift object with the SQL-generated ID
       final newGift = {
@@ -47,7 +48,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
         'eventId': widget.eventId,
         'PledgedBy': null,
         'isPledged': isPledged,
-        'imagePath': null,
+        'imagePath': imagePath,
       };
 
       // Confirmation dialog to ask the user about publishing
@@ -70,8 +71,9 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
           );
         },
       );
+
       // Default to false if user cancels
-      if (shouldPublish == null){
+      if (shouldPublish == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gift saved for you only!')),
         );
@@ -89,6 +91,47 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
     }
   }
 
+  void showAddImageDialog() async {
+    final TextEditingController _imageUrlController = TextEditingController();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add Image URL'),
+          content: TextField(
+            controller: _imageUrlController,
+            decoration: InputDecoration(
+              hintText: 'Enter image URL',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(_imageUrlController.text.trim());
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        imagePath = result;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Image URL saved successfully!')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -187,23 +230,23 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
                         onSaved: (value) => price = double.parse(value!),
                       ),
                       SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          // Logic for uploading an image (placeholder)
-                        },
-                        icon: Icon(Icons.upload, color: Colors.teal),
-                        label: Text(
-                          'Upload Image',
-                          style: TextStyle(color: Colors.teal),
-                        ),
+                      Center(
+                        child: ElevatedButton.icon(
+                          onPressed: showAddImageDialog,
+                          icon: Icon(Icons.link, color: Colors.teal),
+                          label: Text(
+                            'Add Image',
+                            style: TextStyle(color: Colors.teal),
+                          ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 115,),
+                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 30),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                       ),
+                    ),
                       SizedBox(height: 24),
                       Center(
                         child: ElevatedButton(

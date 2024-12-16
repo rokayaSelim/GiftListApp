@@ -3,6 +3,7 @@ import 'PledgedGiftsPage.dart';
 import 'mydatabase.dart';
 import 'session_manger.dart';
 import 'firebase.dart';// Your database class
+import 'package:proj_20p4322/notification_helper.dart';
 
 class UserGiftListPage extends StatefulWidget {
 
@@ -49,12 +50,11 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
       Navigator.pushNamed(context, '/profile');
     }
   }
-  // Function to pledge a gift
 // Function to pledge a gift
   void pledgeGift(int index) async {
     final gift = gifts[index]; // Get the selected gift from the list
     final userId = await getUserId(); // Retrieve the logged-in user ID
-
+    final friendId = await getFriendId();
     // Create an updated gift with isPledged set to true
     final updatedGift = {
       'ID': gift['ID'],
@@ -65,11 +65,26 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
       'isPledged': true, // Set 'isPledged' to true
       'PledgedBy': userId, // Save the user ID as the person pledging the gift
     };
-
+    final dbHelper = MyDatabaseClass();
+    await dbHelper.updateGift(
+      gift['ID'], // ID of the gift
+      gift['name'],   // Name of the gift
+      gift['category'], // Category of the gift
+      gift['description'], // Description
+      gift['price'],    // Price of the gift
+      true,             // isPledged set to true
+      userId: userId, // PledgedBy ID
+    );
     // Update the gift in Firestore
     try {
       await firestoreHelper.updateGift(updatedGift); // Call FirestoreHelper's updateGift method
-      loadGifts(); // Reload gifts after updating
+      loadGifts();
+      await NotificationsHelper().sendNotifications(
+        topic: friendId.toString(),
+        title: 'A gift is pledged',
+        body: 'Gift ID: ${gift['ID']} has been pledged!',
+        userId: "userId",
+      );// Reload gifts after updating
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gift pledged successfully!')),
       );
@@ -160,6 +175,22 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
                         margin: EdgeInsets.symmetric(vertical: 8.0),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         child: ListTile(
+                          leading: gift['imagePath'] != null && gift['imagePath'].isNotEmpty
+                              ? Image.network(
+                                gift['imagePath'], // Replace with the local file path if needed.
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                ),
+                              )
+                                  : Icon(
+                                Icons.image_not_supported,
+                                size: 50,
+                                color: Colors.grey,
+                              ),
                           title: Text(gift['name'], style: TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text('Category: ${gift['category']} | Status: ${gift['isPledged'] == true ? 'Pledged' : 'Available'}'),
                           trailing: Row(
