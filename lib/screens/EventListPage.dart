@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'GiftListPage.dart';
 import 'mydatabase.dart';
 import 'session_manger.dart';
+import 'firebase.dart';
 
 class EventListPage extends StatefulWidget {
   @override
@@ -74,7 +75,7 @@ class _EventListPageState extends State<EventListPage> {
     final TextEditingController eventDateController = TextEditingController();
     final TextEditingController eventLocationController = TextEditingController();
     final TextEditingController eventDescriptionController = TextEditingController();
-
+    final TextEditingController eventStatusController = TextEditingController();
     // Retrieve the user ID from SharedPreferences
     int? userId = await getUserId();
 
@@ -83,6 +84,7 @@ class _EventListPageState extends State<EventListPage> {
       builder: (context) {
         return AlertDialog(
           title: Text('Add New Event'),
+          backgroundColor: Colors.white.withOpacity(0.6),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -105,6 +107,10 @@ class _EventListPageState extends State<EventListPage> {
               TextField(
                 controller: eventDescriptionController,
                 decoration: InputDecoration(labelText: 'Description'),
+              ),
+              TextField(
+                controller: eventStatusController,
+                decoration: InputDecoration(labelText: 'Status'),
               ),
             ],
           ),
@@ -112,15 +118,68 @@ class _EventListPageState extends State<EventListPage> {
             ElevatedButton(
               onPressed: () async {
                 if (eventNameController.text.isNotEmpty && userId != null) {
-                  await mydb.addEvent(
+                  // Add the event to SQL and retrieve its ID
+                  final sqlEventId = await mydb.addEvent(
                     eventNameController.text,
                     eventDateController.text,
                     eventLocationController.text,
                     eventDescriptionController.text,
                     eventCategoryController.text,
-                    userId, // Pass user ID to associate the event with the user
+                    eventStatusController.text,
+                    userId,
                   );
-                  loadEvents(); // Reload events from the database
+
+                  // Create a new event object
+                  final newEvent = {
+                    'ID': sqlEventId, // Use the SQL-generated ID
+                    'name': eventNameController.text,
+                    'category': eventCategoryController.text,
+                    'date': eventDateController.text,
+                    'location': eventLocationController.text,
+                    'description': eventDescriptionController.text,
+                    'Status':eventStatusController.text,
+                    'userId': userId,
+                    'isPublished': false, // New flag
+                  };
+
+                  // Show confirmation dialog for publishing
+                  final shouldPublish = await showDialog<bool>(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Publish Event'),
+                        content: Text('Do you want to publish this event to your Friends?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false), // No
+                            child: Text('No'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true), // Yes
+                            child: Text('Yes'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                  if (shouldPublish == true) {
+                    final firestoreHelper = FirestoreHelper();
+                    newEvent['isPublished'] = true;
+
+                    // Publish to Firestore with the same ID as SQL
+                    await firestoreHelper.syncEvents([newEvent]);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Event published to Friends!')),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Event saved for you only!')),
+                    );
+                  }
+
+                  loadEvents(); // Reload events
                 }
                 Navigator.pop(context);
               },
@@ -128,28 +187,34 @@ class _EventListPageState extends State<EventListPage> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text('Cancel', style: TextStyle(color: Colors.black87)),
             ),
           ],
         );
       },
     );
   }
-
-
-  // Show edit event dialog
-  void _showEditEventDialog(int eventID, String eventName, String eventCategory, String eventDate, String eventLocation, String eventDescription) {
+  void _showEditEventDialog(
+      int eventID,
+      String eventName,
+      String eventCategory,
+      String eventDate,
+      String eventLocation,
+      String eventDescription,
+      String eventStatus,
+      ) {
     final TextEditingController eventNameController = TextEditingController(text: eventName);
     final TextEditingController eventCategoryController = TextEditingController(text: eventCategory);
     final TextEditingController eventDateController = TextEditingController(text: eventDate);
     final TextEditingController eventLocationController = TextEditingController(text: eventLocation);
     final TextEditingController eventDescriptionController = TextEditingController(text: eventDescription);
-
+    final TextEditingController eventStatusController = TextEditingController(text: eventStatus);
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text('Edit Event'),
+          backgroundColor: Colors.white.withOpacity(0.6),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -173,29 +238,64 @@ class _EventListPageState extends State<EventListPage> {
                 controller: eventDescriptionController,
                 decoration: InputDecoration(labelText: 'Description'),
               ),
+              TextField(
+                controller: eventStatusController,
+                decoration: InputDecoration(labelText: 'Status'),
+              ),
             ],
           ),
           actions: [
             ElevatedButton(
               onPressed: () async {
-                // Call the updateEvent method with 6 parameters
-                await mydb.updateEvent(
-                  eventID,                  // Pass the event's ID
-                  eventNameController.text, // Pass the updated name
-                  eventDateController.text, // Pass the updated date
-                  eventLocationController.text, // Pass the updated location
-                  eventDescriptionController.text, // Pass the updated description
-                  eventCategoryController.text, // Pass the updated category
-                  // Optionally, update the status as well
-                );
-                loadEvents(); // Reload events from the database
-                Navigator.pop(context);
+                try {
+                  // Update the event in SQLite
+                  await mydb.updateEvent(
+                    eventID,                  // Pass the event's ID
+                    eventNameController.text, // Pass the updated name
+                    eventDateController.text, // Pass the updated date
+                    eventLocationController.text, // Pass the updated location
+                    eventDescriptionController.text, // Pass the updated description
+                    eventCategoryController.text,
+                    eventStatusController.text,// Pass the updated category
+                  );
+
+                  // Get the updated event from the local list
+                  final updatedEvent = {
+                    'ID': eventID,
+                    'name': eventNameController.text,
+                    'category': eventCategoryController.text,
+                    'date': eventDateController.text,
+                    'location': eventLocationController.text,
+                    'description': eventDescriptionController.text,
+                    'status': eventStatusController.text,
+                  };
+
+                  // Check if the event exists in Firestore
+                  final firestoreHelper = FirestoreHelper();
+                  final eventSnapshot = await firestoreHelper.getEventById(eventID);
+
+                  if (eventSnapshot.exists) {
+                    // If the event exists, update it in Firestore
+                    await firestoreHelper.updateEvent(updatedEvent); // Update Firestore
+                    print('Event updated in Firestore');
+                  } else {
+                    print('Event with ID $eventID does not exist in Firestore. No update performed.');
+                  }
+
+                  loadEvents(); // Reload events from the local database
+                  Navigator.pop(context); // Close the dialog
+                } catch (e) {
+                  // Handle any errors that occur during the update process
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error updating event: ${e.toString()}')),
+                  );
+                }
               },
               child: Text('Save'),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+              onPressed: () => Navigator.pop(context), // Close the dialog without saving
+              child: Text('Cancel', style: TextStyle(color: Colors.black87)),
             ),
           ],
         );
@@ -204,10 +304,39 @@ class _EventListPageState extends State<EventListPage> {
   }
 
   // Delete event from the database
-  void deleteEvent(int eventID) async {
-    await mydb.deleteEvent(eventID);
-    loadEvents(); // Reload events from the database
+  void deleteEvent(int? eventID) async {
+    try {
+      // Ensure the event ID is not null
+      if (eventID == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: Event ID is null. Unable to delete.')),
+        );
+        return;
+      }
+
+      // If the event is published, delete it from Firestore
+      final firestoreHelper = FirestoreHelper();
+      await firestoreHelper.deleteEvent(eventID.toString()); // Ensure correct ID is passed
+
+      // Delete the event locally from SQLite
+      await mydb.deleteEvent(eventID);
+
+      // Reload events from the local database
+      loadEvents();
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Event deleted successfully!')),
+      );
+    } catch (e) {
+      // Handle errors if any
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting event: ${e.toString()}')),
+      );
+    }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +447,8 @@ class _EventListPageState extends State<EventListPage> {
                                   event['category'],       // Pass event category
                                   event['date'],           // Pass event date
                                   event['location'],       // Pass event location
-                                  event['description'],    // Pass event description
+                                  event['description'],
+                                  event['status'],// Pass event description
                                 ),
                               ),
                               IconButton(
