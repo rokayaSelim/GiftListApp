@@ -1,20 +1,28 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'HomePage.dart';
+import 'session_manger.dart';
 import 'mydatabase.dart';
-import 'session_manger.dart'; // Import the session manager
 
-class SignUpPage extends StatelessWidget {
-  final _formKey = GlobalKey<FormState>();
+class SignUpPage extends StatefulWidget {
+  @override
+  _SignUpPageState createState() => _SignUpPageState();
+}
+class _SignUpPageState extends State<SignUpPage> {
+  final _auth = FirebaseAuth.instance;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController PhoneNumberController = TextEditingController();
-
+  final _formKey = GlobalKey<FormState>();
 
   final MyDatabaseClass _mydb = MyDatabaseClass();
 
-  SignUpPage() {
+  @override
+  void initState() {
+    super.initState();
     _initializeDatabase();
   }
 
@@ -26,6 +34,76 @@ class SignUpPage extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+  Future<void> signUp(BuildContext context) async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        // Firebase Authentication for sign-up
+        UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+          email: emailController.text.trim(),
+          password: passwordController.text.trim(),
+        );
+        User? user = userCredential.user;
+        if (user != null) {
+          final dbHelper = MyDatabaseClass();
+          // Add user to the SQLite database
+          await dbHelper.addUser(
+            emailController.text.trim(),
+            passwordController.text,
+            usernameController.text.trim(),
+            PhoneNumberController.text.trim(),
+          );
+          // Retrieve the added user from SQLite
+          final userData = await dbHelper.getUserByEmail(emailController.text.trim());
+          if (userData != null) {
+            int userId = userData['ID'];
+            final firestore = FirebaseFirestore.instance;
+            // Firestore operation
+            await firestore.collection('users').doc(userId.toString()).set({
+              'email': emailController.text.trim(),
+              'username': usernameController.text.trim(),
+              'phoneNumber': PhoneNumberController.text.trim(),
+              'ID': userId, // Store the SQLite user ID for consistency
+              'password': passwordController.text,
+              'imagePath': null,
+
+            }).then((value) {
+              print("User data added to Firestore successfully.");
+            }).catchError((error) {
+              print("Error adding user to Firestore: $error");
+            });
+            // Save the user ID in SharedPreferences
+            await saveUserId(userId);
+            // Display success message
+
+            _showSnackBar(context, 'Sign-up successful!');
+            // Navigate to the next page
+            await FirebaseMessaging.instance.subscribeToTopic(userId.toString());
+            print('Successfully subscribed to topic: $userId');
+            Navigator.pushReplacementNamed(context, '/');
+          } else {
+            throw Exception("Failed to retrieve the user after sign-up.");
+          }
+        }
+      } on FirebaseAuthException catch (e) {
+        String errorMessage = '';
+        if (e.code == 'email-already-in-use') {
+          errorMessage = 'The email is already registered.';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'The email address is not valid.';
+        } else if (e.code == 'weak-password') {
+          errorMessage = 'The password is too weak.';
+        } else {
+          errorMessage = 'An error occurred: ${e.message}';
+        }
+        _showSnackBar(context, errorMessage);
+        print("FirebaseAuthException: $errorMessage");
+      } catch (e) {
+        // Handle other errors
+        _showSnackBar(context, 'Error: ${e.toString()}');
+        print("General Exception: ${e.toString()}");
+      }
+    }
   }
 
   @override
@@ -213,38 +291,8 @@ class SignUpPage extends StatelessWidget {
                       ),
                       SizedBox(height: 24.0),
                       ElevatedButton(
-                        onPressed: () async {
-                          if (_formKey.currentState!.validate()) {
-                            try {
-                              // Check if email already exists
-                              final existingUser = await _mydb.getUserByEmail(emailController.text);
-                              if (existingUser != null) {
-                                _showSnackBar(context, 'Email is already registered.');
-                                return;
-                              }
-
-                              // Add the user to the database and retrieve their ID
-                               await _mydb.addUser(
-                                emailController.text,
-                                passwordController.text,
-                                usernameController.text,
-                                PhoneNumberController.text,
-                              );
-
-                              // Save userId to session
-                              final newUser = await _mydb.getUserByEmail(emailController.text);
-                              final userId = newUser!['ID'];
-                              await saveUserId(userId);
-
-                              // Navigate to the HomePage on successful sign-up
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (context) => HomePage()),
-                              );
-                            } catch (e) {
-                              _showSnackBar(context, 'Error: ${e.toString()}');
-                            }
-                          }
+                        onPressed: () {
+                          signUp(context);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
