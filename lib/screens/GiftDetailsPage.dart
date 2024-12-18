@@ -16,6 +16,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
   late String name, category, description, imagePath;
   late double price;
   bool isPledged = false;
+  int value = 0;
 
   @override
   void initState() {
@@ -25,6 +26,8 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
     description = '';
     price = 0.0;
     imagePath = '';
+    isPledged = false;
+    value = 0;
   }
 
   void saveGift() async {
@@ -34,8 +37,10 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
       final db = MyDatabaseClass();
       final firestoreHelper = FirestoreHelper();
 
+      int value = isPledged ? 1 : 0;
+
       // Add the gift to the SQL database and retrieve the generated ID
-      final sqlGiftId = await db.addGift(name, category, description, price, widget.eventId,imagePath);
+      final sqlGiftId = await db.addGift(name, category, description, price, widget.eventId, value ,imagePath);
 
       // Create a new gift object with the SQL-generated ID
       final newGift = {
@@ -118,7 +123,6 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
         );
       },
     );
-
     if (result != null && result.isNotEmpty) {
       setState(() {
         imagePath = result;
@@ -214,7 +218,6 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
                       ),
                       SizedBox(height: 16),
                       TextFormField(
-                        initialValue: price.toString(),
                         decoration: InputDecoration(
                           labelText: 'Price',
                           prefixText: '\$',
@@ -244,6 +247,33 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
                         ),
                       ),
                     ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Pledge Gift',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          Switch(
+                            value: isPledged,
+                            onChanged: (value) {
+                              setState(() {
+                                isPledged = value;
+                              });
+                            },
+                            activeColor: Colors.teal,
+                            inactiveTrackColor: Colors.grey.shade400,
+                          ),
+                        ],
+                      ),
+                      if (isPledged)
+                      Padding(
+                      padding: const EdgeInsets.only(top: 8.0, left: 16.0),
+                      child: Text(
+                      'NOTE: Pledged gifts cannot be modified',
+                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                        ),
+                      ),
                       SizedBox(height: 24),
                       Center(
                         child: ElevatedButton(
