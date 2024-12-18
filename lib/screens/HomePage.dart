@@ -1,6 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'mydatabase.dart';
 import 'session_manger.dart'; // Import your session manager
+import 'firebase.dart';
+
+
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key); // Removed userEmail and userId
@@ -11,24 +15,25 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final MyDatabaseClass db = MyDatabaseClass(); // Initialize database instance
-
   List<Map<String, dynamic>> friends = [];
   List<Map<String, dynamic>> filteredFriends = [];
   List<Map<String, dynamic>> addedFriends = [];
-
+  List<Map<String, dynamic>> allUsers = []; // Holds all users fetched
+  List<Map<String, dynamic>> displayedUsers = []; // For the search modal
   final TextEditingController _searchController = TextEditingController();
   int _selectedIndex = 0;
-
   String userEmail = ''; // To store email of the current user
-  String userName = ''; // To store username of the current user
+  String userName = '';
+  late final FirestoreHelper firestoreHelper;
+  late final MyDatabaseClass mydb;
 
   @override
   void initState() {
     super.initState();
+    firestoreHelper = FirestoreHelper();
     _initializeUserData();
     _searchController.addListener(_filterFriends);
   }
-
   // Function to initialize user data
   Future<void> _initializeUserData() async {
     try {
@@ -41,7 +46,6 @@ class _HomePageState extends State<HomePage> {
         );
         return;
       }
-
       // Fetch the current user's data (email and username)
       final user = await db.getUserById(currentUserId);
       if (user != null) {
@@ -50,11 +54,9 @@ class _HomePageState extends State<HomePage> {
           user['username']; // Assuming 'username' field exists in your database
           userEmail =
           user['email']; // Assuming 'email' field exists in your database
-
         });
       }
-
-      _fetchUsersFromDatabase(); // After getting user data, fetch all users
+      _fetchFriends(); // After getting user data, fetch all users
     } catch (e) {
       print('Error initializing user data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -70,59 +72,152 @@ class _HomePageState extends State<HomePage> {
         print('Current user ID is null');
         return;
       }
-      await db.addFriend(currentUserId, friend['ID']);
+      final friendId = friend['ID'];
+      // Prevent duplicate entries
+      if (addedFriends.any((f) => f['ID'] == friendId)) {
+        print('Friend already exists in addedFriends list');
+        return;
+      }
+      // Add friend to local and Firestore
+      await db.addFriend(currentUserId, friendId);
+      await firestoreHelper.addFriendToFirestore(currentUserId, friendId);
+      await _fetchFriends();
       setState(() {
         addedFriends.add(friend);
+        friend['isFriend'] = true;
       });
+      print('Friend ${friend['name']} (ID: $friendId) added successfully.');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${friend['name']} added as a friend')),
       );
     } catch (e) {
       print('Error adding friend: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add friend')),
-      );
     }
   }
 
-
-  Future<void> _fetchUsersFromDatabase() async {
+  Future<void> _removeFriend(Map<String, dynamic> friend) async {
     try {
       final currentUserId = await getUserId();
       if (currentUserId == null) {
         print('Current user ID is null');
         return;
       }
-
-      final allUsers = await db.getAllUsers();
-      final friendsList = await db.getFriends(currentUserId);
-      final friendsIds = friendsList.map((friend) => friend['ID']).toSet();
-
+      final friendId = friend['ID'];
+      // Remove friend from local and Firestore
+      await db.removeFriend(currentUserId, friendId);
+      await firestoreHelper.deleteFriend(currentUserId, friendId);
+      await _fetchFriends();
       setState(() {
-        friends = allUsers
-            .where((user) => user['ID'] != currentUserId)
-            .map((user) {
-          return {
-            "ID": user['ID'],
-            "name": user['username'],
-            "email": user['email'],
-            "upcomingEvents": 0,
-            "hasFriendRequest": false,
-          };
-        }).toList();
-
-        addedFriends =
-            friends.where((user) => friendsIds.contains(user['ID'])).toList();
-        filteredFriends = List.from(friends);
+        addedFriends.removeWhere((f) => f['ID'] == friendId);
+        friend['isFriend'] = false;
       });
-    } catch (e) {
-      print('Error fetching friends from database: $e');
+      print('Friend ${friend['name']} (ID: $friendId) removed successfully.');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch friends')),
+        SnackBar(content: Text('${friend['name']} removed from friends')),
       );
+    } catch (e) {
+      print('Error removing friend: $e');
     }
   }
 
+  Future<void> _fetchUsers() async {
+    try {
+      final currentUserId = await getUserId();
+      if (currentUserId == null) {
+        print('Current user ID is null');
+        return;
+      }
+      // Fetch friends from the local SQLite database
+      final localFriends = await db.getFriends(currentUserId);
+      final friendsIds = localFriends.map((f) => f['ID'].toString()).toSet();
+      // Fetch all users from Firestore
+      final usersCollection = FirebaseFirestore.instance.collection('users');
+      final eventsCollection = FirebaseFirestore.instance.collection('events');
+
+      final allUsersSnapshot = await usersCollection.get();
+      final allUsers = allUsersSnapshot.docs
+          .map((doc) => {'ID': doc.id, ...doc.data() as Map<String, dynamic>})
+          .where((user) => user['ID'] != currentUserId)
+          .toList();
+
+      final allEventsSnapshot = await eventsCollection.get();
+      final allEvents = allEventsSnapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+      // Update UI
+      setState(() {
+        friends = allUsers.map((user) {
+          final isFriend = friendsIds.contains(user['ID'].toString());
+          print('User ${user['username']} (ID: ${user['ID']}) isFriend: $isFriend');
+          final friendEvents = allEvents.where((event) {
+            print('Checking event: $event for user: ${user['ID']}');
+            return event['userId'] == user['ID'] &&
+                event['Status'] == 'upcoming';
+          }).toList();
+          final upcomingEventsCount = friendEvents.length;
+          print('User ${user['username']} has $upcomingEventsCount upcoming events.');
+          return {
+            "ID": user['ID'],
+            "name": user['username'] ?? 'Unknown',
+            "email": user['email'],
+            "phonenumber": user['phoneNumber'],
+            "imagePath": user['imagePath'] ?? '',
+            "isFriend": isFriend,
+            "upcomingEventsCount": upcomingEventsCount,
+          };
+        }).toList();
+        addedFriends = friends.where((user) => user['isFriend']).toList();
+        displayedUsers = List.from(friends);
+      });
+      print('Fetched ${friends.length} users and ${addedFriends.length} friends.');
+    } catch (e) {
+      print('Error fetching friends: $e');
+    }
+  }
+  Future<void> _fetchFriends() async {
+    try {
+      final currentUserId = await getUserId();
+      if (currentUserId == null) {
+        print('Current user ID is null');
+        return;
+      }
+      final eventsCollection = FirebaseFirestore.instance.collection('events');
+
+      final allEventsSnapshot = await eventsCollection.get();
+      final allEvents = allEventsSnapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+
+      // Fetch friends from Firestore or local SQLite
+      final localFriends = await db.getFriends(currentUserId);
+      print('Local friends count: ${localFriends.length}');
+      setState(() {
+        friends = localFriends.map((friend) {
+          final friendEvents = allEvents.where((event) {
+            print('Checking event: $event for user: ${friend['ID']}');
+            return event['userId'] == friend['ID'] &&
+                event['Status'] == 'upcoming';
+          }).toList();
+          final upcomingEventsCount = friendEvents.length;
+          print('User ${friend['username']} has $upcomingEventsCount upcoming events.');
+          return {
+            "ID": friend['ID'],
+            "name": friend['username'] ?? 'Unknown',
+            "email": friend['email'],
+            "phonenumber": friend['phoneNumber'],
+            "imagePath": friend['imagePath'] ?? '',
+            "isFriend": true, // Since they are already friends
+            "upcomingEventsCount": upcomingEventsCount,
+          };
+        }).toList();
+        filteredFriends = List.from(friends);
+        addedFriends = List.from(friends); // Initialize as all friends
+      });
+      print('Fetched ${friends.length} friends successfully.');
+    } catch (e) {
+      print('Error fetching friends: $e');
+    }
+  }
   void _filterFriends() {
     final query = _searchController.text.toLowerCase();
     setState(() {
@@ -135,7 +230,153 @@ class _HomePageState extends State<HomePage> {
       }
     });
   }
-
+  void showCustomSearch() {
+    _fetchUsers(); // Fetch updated list of users
+    setState(() {
+      displayedUsers = List.from(allUsers); // Initialize with all users
+    });
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: NetworkImage(
+                      'https://images.unsplash.com/photo-1511886277144-49a67943f819?w=500&auto=format&fit=crop&q=60'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Stack(
+                children: [
+                  Container(color: Colors.black.withOpacity(0.1)),
+                  Column(
+                    children: [
+                      SizedBox(height: 50),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.arrow_back, color: Colors.white),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                            Expanded(
+                              child: TextField(
+                                autofocus: true,
+                                onChanged: (value) {
+                                  setModalState(() {
+                                    displayedUsers = value.isEmpty
+                                        ? List.from(allUsers)
+                                        : allUsers.where((user) =>
+                                        user['name']
+                                            .toLowerCase()
+                                            .contains(value.toLowerCase()))
+                                        .toList();
+                                  });
+                                },
+                                style: TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  hintText: 'Search all users...',
+                                  hintStyle: TextStyle(color: Colors.black87),
+                                  filled: true,
+                                  fillColor: Colors.white.withOpacity(0.6),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  prefixIcon: Icon(Icons.search, color: Colors.teal),
+                                  contentPadding: EdgeInsets.symmetric(vertical: 1.0, horizontal: 10.0),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: displayedUsers.length,
+                          padding: EdgeInsets.symmetric(horizontal: 15.08),
+                          itemBuilder: (context, index) {
+                            final user = displayedUsers[index];
+                            final isFriend = addedFriends.any((f) => f['ID'] == user['ID']);
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6.0),
+                              child: Card(
+                                color: Colors.white.withOpacity(0.6),
+                                elevation: 4,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(15)),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    radius: 30,
+                                    backgroundColor: Colors.teal[50],
+                                    backgroundImage: user['imagePath'] != null &&
+                                        user['imagePath'].isNotEmpty
+                                        ? NetworkImage(user['imagePath'])
+                                        : AssetImage('assets/images/default_profile.png')
+                                    as ImageProvider,
+                                  ),
+                                  title: Text(
+                                    user['name'],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    'Upcoming Events: ${user['upcomingEventsCount'] ?? 0}',
+                                    style: TextStyle(
+                                        color: Colors.teal[600], fontSize: 16),
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (!isFriend)
+                                        IconButton(
+                                          icon: Icon(Icons.person_add,
+                                              color: Colors.orangeAccent),
+                                          onPressed: () async {
+                                            await _addFriend(user);
+                                            setModalState(() {
+                                              user['isFriend'] = true;
+                                            });
+                                          },
+                                        ),
+                                      if (isFriend)
+                                        IconButton(
+                                          icon: Icon(Icons.person_remove,
+                                              color: Colors.red),
+                                          onPressed: () async {
+                                            await _removeFriend(user);
+                                            setModalState(() {
+                                              user['isFriend'] = false;
+                                            });
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
   void _onItemTapped(int index) async {
     setState(() {
       _selectedIndex = index;
@@ -219,14 +460,16 @@ class _HomePageState extends State<HomePage> {
                   ),
                   child: TextField(
                     controller: _searchController,
+                    onTap: showCustomSearch, // Opens the search modal
+                    readOnly: true, // Prevents editing in the main screen
                     decoration: InputDecoration(
                       hintText: 'Search Friends',
                       hintStyle: TextStyle(color: Colors.black87),
                       border: InputBorder.none,
                       prefixIcon: Icon(Icons.search, color: Colors.teal[400]),
-                      contentPadding: EdgeInsets.only(top: 12),
+                      contentPadding: EdgeInsets.only(top: 13),
                     ),
-                  ),
+                  )
                 ),
               ),
               SizedBox(height: 7),
@@ -246,7 +489,8 @@ class _HomePageState extends State<HomePage> {
                   padding: EdgeInsets.symmetric(horizontal: 15.08),
                   itemBuilder: (context, index) {
                     final friend = filteredFriends[index];
-                    final isFriend = addedFriends.contains(friend);
+                    final isFriend = addedFriends.any((f) => f['ID'] == friend['ID']);
+                    print('Friend ${friend['name']} isFriend: $isFriend');
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Card(
@@ -258,8 +502,9 @@ class _HomePageState extends State<HomePage> {
                           leading: CircleAvatar(
                             radius: 30,
                             backgroundColor: Colors.teal[50],
-                            child: Icon(
-                                Icons.person, size: 40, color: Colors.black87),
+                            backgroundImage: friend['imagePath'] != null && friend['imagePath'].isNotEmpty
+                                ? NetworkImage(friend['imagePath'])  // Replace with Image URL or Firebase path
+                                : AssetImage('assets/images/default_profile.png'),  // Default profile image if no image path
                           ),
                           title: Text(
                             friend['name'],
@@ -268,7 +513,7 @@ class _HomePageState extends State<HomePage> {
                                 color: Colors.black87),
                           ),
                           subtitle: Text(
-                            'Upcoming Events: ${friend['ID']}',
+                            'Upcoming Events: ${friend['upcomingEventsCount']}',
                             style: TextStyle(
                                 color: Colors.teal[600], fontSize: 16),
                           ),
@@ -276,41 +521,16 @@ class _HomePageState extends State<HomePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (!isFriend)
-                                IconButton(
-                                  icon: Icon(Icons.person_add,
-                                      color: Colors.orangeAccent),
-                                  onPressed: () => _addFriend(friend),
-                                ),
+                                if (!isFriend)
+                                  IconButton(
+                                    icon: Icon(Icons.person_add, color: Colors.orangeAccent),
+                                    onPressed: () => _addFriend(friend),  // Use _addFriend method
+                                  ),
                               if (isFriend)
                                 IconButton(
-                                  icon: Icon(
-                                      Icons.person_remove, color: Colors.red),
-                                  onPressed: () async {
-                                    final currentUser = await db.getUserByEmail(
-                                        userEmail);
-
-                                    if (currentUser != null) {
-                                      await db.removeFriend(
-                                          currentUser['ID'], friend['ID']);
-                                      setState(() {
-                                        addedFriends.remove(friend);
-                                        filteredFriends.remove(friend);
-                                      });
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(content: Text(
-                                            '${friend['name']} removed from friends')),
-                                      );
-                                    } else {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(content: Text(
-                                            'Failed to identify current user')),
-                                      );
-                                    }
-                                  },
+                                  icon: Icon(Icons.person_remove, color: Colors.red),
+                                  onPressed: () => _removeFriend(friend),  // Use _removeFriend method
                                 ),
-
                               IconButton(
                                 icon: Icon(Icons.arrow_forward_ios,
                                     color: Colors.teal[400]),
@@ -320,7 +540,6 @@ class _HomePageState extends State<HomePage> {
                                   Navigator.pushNamed(
                                     context,
                                     '/usereventList',
-                                    arguments: {'friendId': friend['ID']},
                                   );
                                 },
                               ),
