@@ -23,7 +23,6 @@ class _EventListPageState extends State<EventListPage> {
       loadEvents(); // Load events during initialization
     });
   }
-
   // Load events from the database with an optional search query
   void loadEvents({String searchQuery = ''}) async {
     int? userId = await getUserId();  // Retrieve the user ID
@@ -70,6 +69,7 @@ class _EventListPageState extends State<EventListPage> {
 
   // Show add event dialog
   void _showAddEventDialog() async {
+    final _formKey = GlobalKey<FormState>();
     final TextEditingController eventNameController = TextEditingController();
     final TextEditingController eventCategoryController = TextEditingController();
     final TextEditingController eventDateController = TextEditingController();
@@ -85,39 +85,83 @@ class _EventListPageState extends State<EventListPage> {
         return AlertDialog(
           title: Text('Add New Event'),
           backgroundColor: Colors.white.withOpacity(0.6),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: eventNameController,
-                decoration: InputDecoration(labelText: 'Event Name'),
-              ),
-              TextField(
-                controller: eventCategoryController,
-                decoration: InputDecoration(labelText: 'Category'),
-              ),
-              TextField(
-                controller: eventDateController,
-                decoration: InputDecoration(labelText: 'Date'),
-              ),
-              TextField(
-                controller: eventLocationController,
-                decoration: InputDecoration(labelText: 'Location'),
-              ),
-              TextField(
-                controller: eventDescriptionController,
-                decoration: InputDecoration(labelText: 'Description'),
-              ),
-              TextField(
-                controller: eventStatusController,
-                decoration: InputDecoration(labelText: 'Status'),
-              ),
-            ],
+          content: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: eventNameController,
+                  decoration: InputDecoration(labelText: 'Event Name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Event name is required';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: eventCategoryController,
+                  decoration: InputDecoration(labelText: 'Category'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Category is required';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: eventDateController,
+                  decoration: InputDecoration(labelText: 'Date'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Date is required';
+                    }
+                    // Regular expression for validating the date format: yyyy-MM-dd
+                    final dateRegex = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+                    if (!dateRegex.hasMatch(value)) {
+                      return 'Enter a valid date (yyyy-MM-dd)';
+                    }
+                    return null; // No validation errors
+                  },
+                ),
+                TextFormField(
+                  controller: eventLocationController,
+                  decoration: InputDecoration(labelText: 'Location'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Location is required';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: eventDescriptionController,
+                  decoration: InputDecoration(labelText: 'Description'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Description is required';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: eventStatusController,
+                  decoration: InputDecoration(labelText: 'Status'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Status is required';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             ElevatedButton(
               onPressed: () async {
-                if (eventNameController.text.isNotEmpty && userId != null) {
+                if (_formKey.currentState!.validate() && userId != null) {
                   // Add the event to SQL and retrieve its ID
                   final sqlEventId = await mydb.addEvent(
                     eventNameController.text,
@@ -178,11 +222,15 @@ class _EventListPageState extends State<EventListPage> {
                       SnackBar(content: Text('Event saved for you only!')),
                     );
                   }
-
-                  loadEvents(); // Reload events
+                  loadEvents();
+                  Navigator.pop(context); // Close the dialog after all operations
+                } else {
+                  // If validation fails, show a message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please fill in all required fields.')),
+                  );
                 }
-                Navigator.pop(context);
-              },
+              },// Reload events
               child: Text('Add'),
             ),
             TextButton(
@@ -203,6 +251,7 @@ class _EventListPageState extends State<EventListPage> {
       String eventDescription,
       String eventStatus,
       ) {
+    final _formKey = GlobalKey<FormState>();
     final TextEditingController eventNameController = TextEditingController(text: eventName);
     final TextEditingController eventCategoryController = TextEditingController(text: eventCategory);
     final TextEditingController eventDateController = TextEditingController(text: eventDate);
@@ -215,75 +264,120 @@ class _EventListPageState extends State<EventListPage> {
         return AlertDialog(
           title: Text('Edit Event'),
           backgroundColor: Colors.white.withOpacity(0.6),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: eventNameController,
-                decoration: InputDecoration(labelText: 'Event Name'),
-              ),
-              TextField(
-                controller: eventCategoryController,
-                decoration: InputDecoration(labelText: 'Category'),
-              ),
-              TextField(
-                controller: eventDateController,
-                decoration: InputDecoration(labelText: 'Date'),
-              ),
-              TextField(
-                controller: eventLocationController,
-                decoration: InputDecoration(labelText: 'Location'),
-              ),
-              TextField(
-                controller: eventDescriptionController,
-                decoration: InputDecoration(labelText: 'Description'),
-              ),
-              TextField(
-                controller: eventStatusController,
-                decoration: InputDecoration(labelText: 'Status'),
-              ),
-            ],
+          content: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: eventNameController,
+                  decoration: InputDecoration(labelText: 'Event Name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Event name is required';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: eventCategoryController,
+                  decoration: InputDecoration(labelText: 'Category'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Category is required';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: eventDateController,
+                  decoration: InputDecoration(labelText: 'Date'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Date is required';
+                    }
+                    // Regular expression for validating the date format: yyyy-MM-dd
+                    final dateRegex = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+                    if (!dateRegex.hasMatch(value)) {
+                      return 'Enter a valid date (yyyy-MM-dd)';
+                    }
+                    return null; // No validation errors
+                  },
+                ),
+                TextFormField(
+                  controller: eventLocationController,
+                  decoration: InputDecoration(labelText: 'Location'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Location is required';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: eventDescriptionController,
+                  decoration: InputDecoration(labelText: 'Description'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Description is required';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: eventStatusController,
+                  decoration: InputDecoration(labelText: 'Status'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Status is required';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             ElevatedButton(
               onPressed: () async {
                 try {
-                  // Update the event in SQLite
-                  await mydb.updateEvent(
-                    eventID,                  // Pass the event's ID
-                    eventNameController.text, // Pass the updated name
-                    eventDateController.text, // Pass the updated date
-                    eventLocationController.text, // Pass the updated location
-                    eventDescriptionController.text, // Pass the updated description
-                    eventCategoryController.text,
-                    eventStatusController.text,// Pass the updated category
-                  );
-
-                  // Get the updated event from the local list
-                  final updatedEvent = {
-                    'ID': eventID,
-                    'name': eventNameController.text,
-                    'category': eventCategoryController.text,
-                    'date': eventDateController.text,
-                    'location': eventLocationController.text,
-                    'description': eventDescriptionController.text,
-                    'status': eventStatusController.text,
-                  };
-
-                  // Check if the event exists in Firestore
-                  final firestoreHelper = FirestoreHelper();
-                  final eventSnapshot = await firestoreHelper.getEventById(eventID);
-
-                  if (eventSnapshot.exists) {
-                    // If the event exists, update it in Firestore
-                    await firestoreHelper.updateEvent(updatedEvent); // Update Firestore
-                    print('Event updated in Firestore');
-                  } else {
-                    print('Event with ID $eventID does not exist in Firestore. No update performed.');
-                  }
-
-                  loadEvents(); // Reload events from the local database
-                  Navigator.pop(context); // Close the dialog
+                  if (_formKey.currentState!.validate()) {
+                    // Update the event in SQLite
+                    await mydb.updateEvent(
+                      eventID, // Pass the event's ID
+                      eventNameController.text, // Pass the updated name
+                      eventDateController.text, // Pass the updated date
+                      eventLocationController.text, // Pass the updated location
+                      eventDescriptionController.text, // Pass the updated description
+                      eventCategoryController.text,
+                      eventStatusController.text, // Pass the updated category
+                    );
+                    // Get the updated event from the local list
+                    final updatedEvent = {
+                      'ID': eventID,
+                      'name': eventNameController.text,
+                      'category': eventCategoryController.text,
+                      'date': eventDateController.text,
+                      'location': eventLocationController.text,
+                      'description': eventDescriptionController.text,
+                      'status': eventStatusController.text,
+                    };
+                    // Check if the event exists in Firestore
+                    final firestoreHelper = FirestoreHelper();
+                    final eventSnapshot = await firestoreHelper.getEventById(
+                        eventID);
+                    if (eventSnapshot.exists) {
+                      // If the event exists, update it in Firestore
+                      await firestoreHelper.updateEvent(
+                          updatedEvent); // Update Firestore
+                      print('Event updated in Firestore');
+                    } else {
+                      print(
+                          'Event with ID $eventID does not exist in Firestore. No update performed.');
+                    }
+                    loadEvents(); // Reload events from the local database
+                    Navigator.pop(context);
+                  }// Close the dialog
                 } catch (e) {
                   // Handle any errors that occur during the update process
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -302,7 +396,6 @@ class _EventListPageState extends State<EventListPage> {
       },
     );
   }
-
   // Delete event from the database
   void deleteEvent(int? eventID) async {
     try {
@@ -313,17 +406,13 @@ class _EventListPageState extends State<EventListPage> {
         );
         return;
       }
-
       // If the event is published, delete it from Firestore
       final firestoreHelper = FirestoreHelper();
       await firestoreHelper.deleteEvent(eventID.toString()); // Ensure correct ID is passed
-
       // Delete the event locally from SQLite
       await mydb.deleteEvent(eventID);
-
       // Reload events from the local database
       loadEvents();
-
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Event deleted successfully!')),
@@ -335,9 +424,6 @@ class _EventListPageState extends State<EventListPage> {
       );
     }
   }
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
