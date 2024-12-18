@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'HomePage.dart';
 import 'mydatabase.dart';
-import 'session_manger.dart'; // Replace with the correct import for your session manager
+import 'session_manger.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignInPage extends StatefulWidget {
   @override
@@ -9,6 +10,7 @@ class SignInPage extends StatefulWidget {
 }
 
 class _SignInPageState extends State<SignInPage> {
+  final _auth = FirebaseAuth.instance;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -24,39 +26,35 @@ class _SignInPageState extends State<SignInPage> {
 
   Future<void> _signIn(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
-      String email = _emailController.text.trim();
-      String password = _passwordController.text.trim();
-
       try {
-        final user = await _mydb.getUserByEmail(email);
+        // Firebase authentication for sign-in
+         await _auth.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
 
-        if (user == null) {
-          _showSnackBar('Email not registered. Please sign up.');
-          return;
+        final userData = await _mydb.getUserByEmail(_emailController.text.trim());
+        if (userData != null) {
+          // Save session
+          await saveUserId(userData['ID']);
         }
-
-        if (user['password'] != password) {
-          _showSnackBar('Incorrect password.');
-          return;
-        }
-
-        await saveUserId(user['ID']); // Save session
+        // Navigate to HomePage
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomePage()),
         );
-      } catch (e) {
+      }
+        catch (e) {
+        // Handle general errors
         _showSnackBar('An error occurred: ${e.toString()}');
       }
     }
   }
-
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
