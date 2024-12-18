@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'mydatabase.dart';
 import 'session_manger.dart';
 import 'firebase.dart';// Import session manager for shared preferences
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfilePage extends StatefulWidget {
   ProfilePage({Key? key}) : super(key: key); // No need to pass userEmail or userId
@@ -17,6 +18,7 @@ class _ProfilePageState extends State<ProfilePage> {
   late String imagePath;
  // To store user email
   final MyDatabaseClass _mydb = MyDatabaseClass(); // Initialize the database class
+  final _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -207,6 +209,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
   Future<void> _deleteUserAccount() async {
     try {
+      User? user = _auth.currentUser;
+      if (user != null) {
+        // Delete the user from Firebase Authentication
+        await user.delete();
+      }
       final userId = await getUserId(); // Get user ID from session
       if (userId != null) {
         final userIdStr = userId.toString();
