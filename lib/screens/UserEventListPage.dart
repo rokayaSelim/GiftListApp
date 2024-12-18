@@ -43,7 +43,7 @@ class _UserEventListPageState extends State<UserEventListPage> {
         events = data.where((event) {
           return event['name'].toLowerCase().contains(searchQuery.toLowerCase()) ||
               event['category'].toLowerCase().contains(searchQuery.toLowerCase()) ||
-              event['status'].toLowerCase().contains(searchQuery.toLowerCase());
+              event['Status'].toLowerCase().contains(searchQuery.toLowerCase());
         }).toList();
       });
     } else {
@@ -75,13 +75,15 @@ class _UserEventListPageState extends State<UserEventListPage> {
       } else if (criteria == 'category') {
         events.sort((a, b) => a['category'].compareTo(b['category']));
       } else if (criteria == 'status') {
-        events.sort((a, b) => a['status'].compareTo(b['status']));
+        events.sort((a, b) => a['Status'].compareTo(b['Status']));
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -124,7 +126,7 @@ class _UserEventListPageState extends State<UserEventListPage> {
                             loadEvents(searchQuery: searchQuery); // Implement search logic
                           },
                           decoration: InputDecoration(
-                            contentPadding: EdgeInsets.all(16.0),
+                            contentPadding: EdgeInsets.symmetric(vertical: screenHeight * 0.01,horizontal: screenWidth * 0.02),
                             hintText: 'Search',
                             hintStyle: TextStyle(color: Colors.black87,fontWeight: FontWeight.bold),
                             border: InputBorder.none,
@@ -173,7 +175,7 @@ class _UserEventListPageState extends State<UserEventListPage> {
                         elevation: 3,
                         child: ListTile(
                           title: Text(event['name']),
-                          subtitle: Text('Category: ${event['category']} | Status: ${event['status']}'),
+                          subtitle: Text('Category: ${event['category']} | Status: ${event['Status']}'),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -182,15 +184,26 @@ class _UserEventListPageState extends State<UserEventListPage> {
                                 onPressed: () async {
                                   // Save the event ID to shared preferences
                                   await saveEventId(event['ID']);
-                                  // Navigate to the UserGiftListPage
+                                  // Navigate to the UserGiftListPage with a custom fade transition
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) => UserGiftListPage(),
+                                    PageRouteBuilder(
+                                      pageBuilder: (context, animation, secondaryAnimation) {
+                                        return UserGiftListPage();
+                                      },
+                                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                        // Fade transition: animating opacity
+                                        const begin = 0.0;
+                                        const end = 1.0;
+                                        const curve = Curves.easeInOut;
+                                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                                        var opacityAnimation = animation.drive(tween);
+                                        return FadeTransition(opacity: opacityAnimation, child: child);
+                                      },
                                     ),
                                   );
                                 },
-                              ),
+                              )
                             ],
                           ),
                         ),
