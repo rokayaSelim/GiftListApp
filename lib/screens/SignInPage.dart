@@ -3,6 +3,7 @@ import 'HomePage.dart';
 import 'mydatabase.dart';
 import 'session_manger.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'SignUpPage.dart';
 
 class SignInPage extends StatefulWidget {
   @override
@@ -24,6 +25,7 @@ class _SignInPageState extends State<SignInPage> {
     super.dispose();
   }
 
+
   Future<void> _signIn(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
       try {
@@ -39,16 +41,47 @@ class _SignInPageState extends State<SignInPage> {
           await saveUserId(userData['ID']);
         }
         // Navigate to HomePage
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        );
+         _navigateWithFade(context, '/');
       }
         catch (e) {
         // Handle general errors
         _showSnackBar('An error occurred: ${e.toString()}');
       }
     }
+  }
+  void _navigateWithFade(BuildContext context, String routeName) {
+    // Define the page you want to navigate to based on the route name
+    Widget page;
+    switch (routeName) {
+      case '/':
+        page = HomePage();
+        break;
+      case '/signUp':
+        page = SignUpPage();
+        break;
+      default:
+        page = SignInPage(); // Fallback page in case route is undefined
+        break;
+    }
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return page;
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = 0.0;
+          const end = 1.0;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var opacityAnimation = animation.drive(tween);
+
+          return FadeTransition(opacity: opacityAnimation, child: child);
+        },
+      ),
+    );
   }
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -57,6 +90,8 @@ class _SignInPageState extends State<SignInPage> {
   }
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       body: Stack(
         children: [
@@ -86,7 +121,7 @@ class _SignInPageState extends State<SignInPage> {
           // Sign-in form
           Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding:   EdgeInsets.symmetric(vertical: screenHeight * 0.01,horizontal: screenWidth * 0.04),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -165,18 +200,17 @@ class _SignInPageState extends State<SignInPage> {
                       onPressed: () => _signIn(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.teal,
-                        padding: EdgeInsets.symmetric(
-                            vertical: 14.0, horizontal: 50.0),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
+                        padding:  EdgeInsets.symmetric(vertical: screenHeight * 0.01,horizontal: screenWidth * 0.08),
                       ),
                       child: Text('Sign In',style: TextStyle(color: Colors.white),
                     ),),
                     SizedBox(height: 16.0),
                     TextButton(
                       onPressed: () {
-                        Navigator.pushNamed(context, '/signUp');
+                        _navigateWithFade(context, '/signUp');
                       },
                       child: Text(
                         'Don’t have an account? Sign Up',

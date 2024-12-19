@@ -3,6 +3,9 @@ import 'UserGiftListPage.dart';
 import 'mydatabase.dart';
 import 'session_manger.dart';
 import 'firebase.dart';
+import 'HomePage.dart';
+import 'EventListPage.dart';
+import 'ProfilePage.dart';
 
 class UserEventListPage extends StatefulWidget {
   @override
@@ -51,19 +54,59 @@ class _UserEventListPageState extends State<UserEventListPage> {
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
+  void _navigateWithFade(BuildContext context, String routeName) {
+    // Define the page you want to navigate to based on the route name
+    Widget page;
+    switch (routeName) {
+      case '/eventList':
+        page = EventListPage();
+        break;
+      case '/':
+        page = HomePage();
+        break;
+      case '/profile':
+        page = ProfilePage();
+        break;
+      case '/userGiftList':
+        page = UserGiftListPage();
+        break;
+      default:
+        page = HomePage(); // Fallback page in case route is undefined
+        break;
+    }
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return page;
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = 0.0;
+          const end = 1.0;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var opacityAnimation = animation.drive(tween);
+
+          return FadeTransition(opacity: opacityAnimation, child: child);
+        },
+      ),
+    );
+  }
   int _selectedIndex = 0;
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index) async {
     setState(() {
       _selectedIndex = index;
     });
-
-    // Add navigation logic for each page
     if (index == 0) {
-      Navigator.pushNamed(context, '/');
-    } else if (index == 1) {
-      Navigator.pushNamed(context, '/eventList');
-    } else if (index == 2) {
-      Navigator.pushNamed(context, '/profile');
+      _navigateWithFade(context, '/');
+    }
+    if (index == 1) {
+      _navigateWithFade(context, '/eventList');
+    }
+    if (index == 2) {
+      _navigateWithFade(context, '/profile');
     }
   }
   // Sort events based on criteria
@@ -185,23 +228,7 @@ class _UserEventListPageState extends State<UserEventListPage> {
                                   // Save the event ID to shared preferences
                                   await saveEventId(event['ID']);
                                   // Navigate to the UserGiftListPage with a custom fade transition
-                                  Navigator.push(
-                                    context,
-                                    PageRouteBuilder(
-                                      pageBuilder: (context, animation, secondaryAnimation) {
-                                        return UserGiftListPage();
-                                      },
-                                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                        // Fade transition: animating opacity
-                                        const begin = 0.0;
-                                        const end = 1.0;
-                                        const curve = Curves.easeInOut;
-                                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                                        var opacityAnimation = animation.drive(tween);
-                                        return FadeTransition(opacity: opacityAnimation, child: child);
-                                      },
-                                    ),
-                                  );
+                                  _navigateWithFade(context, '/userGiftList');
                                 },
                               )
                             ],

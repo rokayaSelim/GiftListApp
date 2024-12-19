@@ -3,6 +3,10 @@ import 'mydatabase.dart';
 import 'session_manger.dart';
 import 'firebase.dart';// Import session manager for shared preferences
 import 'package:firebase_auth/firebase_auth.dart';
+import 'EventListPage.dart';
+import 'MyPledgedGiftsPage.dart';
+import 'HomePage.dart';
+import 'SignInPage.dart';
 
 class ProfilePage extends StatefulWidget {
   ProfilePage({Key? key}) : super(key: key); // No need to pass userEmail or userId
@@ -26,6 +30,48 @@ class _ProfilePageState extends State<ProfilePage> {
     _fetchUserDetails();
     imagePath = '';// Fetch user details when the page loads
   }
+  void _navigateWithFade(BuildContext context, String routeName) {
+    // Define the page you want to navigate to based on the route name
+    Widget page;
+    switch (routeName) {
+      case '/eventList':
+        page = EventListPage(); // Replace with your actual page widget
+        break;
+      case '/MypledgedGifts':
+        page = MyPledgedGiftsPage(); // Replace with your actual page widget
+        break;
+      case '/signIn':
+        page = SignInPage(); // Replace with your actual page widget
+        break;
+      case '/profile':
+        page = ProfilePage();
+        break;
+    // Add more routes as needed
+      default:
+        page = HomePage(); // Fallback page in case route is undefined
+        break;
+    }
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return page;
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = 0.0;
+          const end = 1.0;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var opacityAnimation = animation.drive(tween);
+
+          return FadeTransition(opacity: opacityAnimation, child: child);
+        },
+      ),
+    );
+  }
+
 
   // Fetch user details (username and email) from the database based on userId
   Future<void> _fetchUserDetails() async {
@@ -225,7 +271,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Account deleted successfully!')),
         );
-        Navigator.pushReplacementNamed(context, '/signIn'); // Navigate to sign-in page
+        _navigateWithFade(context, '/signIn'); // Navigate to sign-in page
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: User ID not found.')),
@@ -266,7 +312,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void _logOut() async {
     try {
       await clearUserSession(); // Clear the user's session (function from session_manager.dart)
-      Navigator.pushReplacementNamed(context, '/signIn'); // Navigate to the sign-in page
+      _navigateWithFade(context, '/signIn'); // Navigate to the sign-in page
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error logging out: ${e.toString()}')),
@@ -275,21 +321,18 @@ class _ProfilePageState extends State<ProfilePage> {
   }
   // Bottom navigation
   int _selectedIndex = 0;
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index) async {
     setState(() {
       _selectedIndex = index;
     });
-
     if (index == 0) {
-      Navigator.pushNamed(context, '/');
-    } else if (index == 1) {
-      Navigator.pushNamed(context, '/eventList');
-    } else if (index == 2) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-            builder: (context) => ProfilePage()), // No need to pass userEmail and userId
-      );
+      _navigateWithFade(context, '/');
+    }
+    if (index == 1) {
+      _navigateWithFade(context, '/eventList');
+    }
+    if (index == 2) {
+      _navigateWithFade(context, '/profile');
     }
   }
 
@@ -391,7 +434,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             trailing: Icon(Icons.arrow_forward_ios, color: Colors.teal[400]),
                             onTap: () {
-                              Navigator.pushNamed(context, '/eventList');
+                              _navigateWithFade(context, '/eventList');
                             },
                           ),
                           Divider(color: Colors.grey[300]),
@@ -402,7 +445,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             trailing: Icon(Icons.arrow_forward_ios, color: Colors.teal[400]),
                             onTap: () {
-                              Navigator.pushNamed(context, '/MypledgedGifts');
+                              _navigateWithFade(context, '/MypledgedGifts');
                             },
                           ),
                           Divider(color: Colors.grey[300]),

@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'mydatabase.dart';
 import 'session_manger.dart'; // Import your session manager
 import 'firebase.dart';
-
-
+import 'EventListPage.dart';
+import 'UserEventListPage.dart';
+import 'ProfilePage.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key); // Removed userEmail and userId
@@ -33,6 +34,43 @@ class _HomePageState extends State<HomePage> {
     firestoreHelper = FirestoreHelper();
     _initializeUserData();
     _searchController.addListener(_filterFriends);
+  }
+  void _navigateWithFade(BuildContext context, String routeName) {
+    // Define the page you want to navigate to based on the route name
+    Widget page;
+    switch (routeName) {
+      case '/eventList':
+        page = EventListPage();
+        break;
+      case '/usereventList':
+        page = UserEventListPage();
+        break;
+      case '/profile':
+        page = ProfilePage();
+        break;
+      default:
+        page = HomePage(); // Fallback page in case route is undefined
+        break;
+    }
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return page;
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = 0.0;
+          const end = 1.0;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var opacityAnimation = animation.drive(tween);
+
+          return FadeTransition(opacity: opacityAnimation, child: child);
+        },
+      ),
+    );
   }
   // Function to initialize user data
   Future<void> _initializeUserData() async {
@@ -239,10 +277,13 @@ class _HomePageState extends State<HomePage> {
       context: context,
       isScrollControlled: true,
       builder: (context) {
+        final screenHeight = MediaQuery.of(context).size.height;
+        final screenWidth = MediaQuery.of(context).size.width;
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Container(
               height: MediaQuery.of(context).size.height,
+              width: MediaQuery.of(context).size.width,
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: NetworkImage(
@@ -257,7 +298,7 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       SizedBox(height: 50),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        padding: EdgeInsets.symmetric(vertical: screenHeight * 0.001,horizontal: screenWidth * 0.04),
                         child: Row(
                           children: [
                             IconButton(
@@ -289,7 +330,7 @@ class _HomePageState extends State<HomePage> {
                                     borderSide: BorderSide.none,
                                   ),
                                   prefixIcon: Icon(Icons.search, color: Colors.teal),
-                                  contentPadding: EdgeInsets.symmetric(vertical: 1.0, horizontal: 10.0),
+                                  contentPadding:  EdgeInsets.symmetric(vertical: screenHeight * 0.001,horizontal: screenWidth * 0.01),
                                 ),
                               ),
                             ),
@@ -300,7 +341,7 @@ class _HomePageState extends State<HomePage> {
                       Expanded(
                         child: ListView.builder(
                           itemCount: displayedUsers.length,
-                          padding: EdgeInsets.symmetric(horizontal: 15.08),
+                          padding:  EdgeInsets.symmetric(vertical: screenHeight * 0.001,horizontal: screenWidth * 0.03),
                           itemBuilder: (context, index) {
                             final user = displayedUsers[index];
                             final isFriend = addedFriends.any((f) => f['ID'] == user['ID']);
@@ -382,16 +423,15 @@ class _HomePageState extends State<HomePage> {
       _selectedIndex = index;
     });
     if (index == 0) {
-      Navigator.pushNamed(context, '/');
+      _navigateWithFade(context, '/');
     }
     if (index == 1) {
-      Navigator.pushNamed(context, '/eventList');
+      _navigateWithFade(context, '/eventList');
     }
     if (index == 2) {
-      Navigator.pushNamed(context, '/profile');
+      _navigateWithFade(context, '/profile');
     }
   }
-
   @override
   void dispose() {
     _searchController.removeListener(_filterFriends);
@@ -401,6 +441,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -413,7 +455,7 @@ class _HomePageState extends State<HomePage> {
         iconTheme: IconThemeData(color: Colors.white),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.pushNamed(context, '/eventList'),
+        onPressed: () =>  _navigateWithFade(context, '/eventList'),
         label: Text(
           'Create Event/List',
           style: TextStyle(fontSize: 16, color: Colors.black87),
@@ -448,7 +490,7 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14.0, vertical: 20.0),
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  padding: EdgeInsets.symmetric(vertical: screenHeight * 0.001,horizontal: screenWidth * 0.02),
                   decoration: BoxDecoration(
                     color:Colors.white.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(15),
@@ -474,7 +516,7 @@ class _HomePageState extends State<HomePage> {
               ),
               SizedBox(height: 7),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding:  EdgeInsets.symmetric(vertical: screenHeight * 0.001,horizontal: screenWidth * 0.04),
                 child: Text(
                   'Friends',
                   style: TextStyle(fontSize: 22,
@@ -486,7 +528,7 @@ class _HomePageState extends State<HomePage> {
               Expanded(
                 child: ListView.builder(
                   itemCount: filteredFriends.length,
-                  padding: EdgeInsets.symmetric(horizontal: 15.08),
+                  padding:EdgeInsets.symmetric(vertical: screenHeight * 0.001,horizontal: screenWidth * 0.03),
                   itemBuilder: (context, index) {
                     final friend = filteredFriends[index];
                     final isFriend = addedFriends.any((f) => f['ID'] == friend['ID']);
@@ -537,10 +579,7 @@ class _HomePageState extends State<HomePage> {
                                 onPressed: () async {
                                   final friendId = friend['ID'];
                                   await saveFriendId(friendId);
-                                  Navigator.pushNamed(
-                                    context,
-                                    '/usereventList',
-                                  );
+                                  _navigateWithFade(context, '/usereventList');
                                 },
                               ),
                             ],

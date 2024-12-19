@@ -2,8 +2,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:proj_20p4322/screens/SignInPage.dart';
 import 'session_manger.dart';
 import 'mydatabase.dart';
+import 'HomePage.dart';
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -80,7 +82,7 @@ class _SignUpPageState extends State<SignUpPage> {
             // Navigate to the next page
             await FirebaseMessaging.instance.subscribeToTopic(userId.toString());
             print('Successfully subscribed to topic: $userId');
-            Navigator.pushReplacementNamed(context, '/');
+            _navigateWithFade(context, '/');
           } else {
             throw Exception("Failed to retrieve the user after sign-up.");
           }
@@ -105,9 +107,44 @@ class _SignUpPageState extends State<SignUpPage> {
       }
     }
   }
+  void _navigateWithFade(BuildContext context, String routeName) {
+    // Define the page you want to navigate to based on the route name
+    Widget page;
+    switch (routeName) {
+      case '/':
+        page = HomePage();
+        break;
+      case '/signIn':
+        page = SignInPage();
+        break;
+      default:
+        page = SignUpPage(); // Fallback page in case route is undefined
+        break;
+    }
 
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return page;
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = 0.0;
+          const end = 1.0;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var opacityAnimation = animation.drive(tween);
+
+          return FadeTransition(opacity: opacityAnimation, child: child);
+        },
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       body: Stack(
         children: [
@@ -135,7 +172,7 @@ class _SignUpPageState extends State<SignUpPage> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding:  EdgeInsets.symmetric(vertical: screenHeight * 0.01,horizontal: screenWidth * 0.04),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -149,7 +186,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 20.0),
+                SizedBox(height: 15),
                 Form(
                   key: _formKey,
                   child: Column(
@@ -300,14 +337,14 @@ class _SignUpPageState extends State<SignUpPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          padding: EdgeInsets.symmetric(vertical: 14.0, horizontal: 50.0),
+                          padding:  EdgeInsets.symmetric(vertical: screenHeight * 0.01,horizontal: screenWidth * 0.08),
                         ),
                         child: Text('Sign Up'),
                       ),
                       SizedBox(height: 16.0),
                       TextButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/signIn');
+                          _navigateWithFade(context, '/signIn');
                         },
                         child: Text(
                           'Already have an account? Sign In',

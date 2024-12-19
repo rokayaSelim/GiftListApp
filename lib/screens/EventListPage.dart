@@ -3,6 +3,10 @@ import 'GiftListPage.dart';
 import 'mydatabase.dart';
 import 'session_manger.dart';
 import 'firebase.dart';
+import 'HomePage.dart';
+import 'EventListPage.dart';
+import 'ProfilePage.dart';
+
 
 class EventListPage extends StatefulWidget {
   @override
@@ -38,19 +42,59 @@ class _EventListPageState extends State<EventListPage> {
     }
   }
 
+  void _navigateWithFade(BuildContext context, String routeName) {
+    // Define the page you want to navigate to based on the route name
+    Widget page;
+    switch (routeName) {
+      case '/eventList':
+        page = EventListPage();
+        break;
+      case '/':
+        page = HomePage();
+        break;
+      case '/profile':
+        page = ProfilePage();
+        break;
+      case '/giftList':
+        page = GiftListPage();
+        break;
+      default:
+        page = HomePage(); // Fallback page in case route is undefined
+        break;
+    }
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return page;
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = 0.0;
+          const end = 1.0;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var opacityAnimation = animation.drive(tween);
+
+          return FadeTransition(opacity: opacityAnimation, child: child);
+        },
+      ),
+    );
+  }
   int _selectedIndex = 0;
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index) async {
     setState(() {
       _selectedIndex = index;
     });
-
-    // Add navigation logic for each page
     if (index == 0) {
-      Navigator.pushNamed(context, '/');
-    } else if (index == 1) {
-      Navigator.pushNamed(context, '/eventList');
-    } else if (index == 2) {
-      Navigator.pushNamed(context, '/profile');
+      _navigateWithFade(context, '/');
+    }
+    if (index == 1) {
+      _navigateWithFade(context, '/eventList');
+    }
+    if (index == 2) {
+      _navigateWithFade(context, '/profile');
     }
   }
   // Sort events based on criteria
@@ -426,6 +470,8 @@ class _EventListPageState extends State<EventListPage> {
   }
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -517,7 +563,7 @@ class _EventListPageState extends State<EventListPage> {
                           shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15.0),
                           ),
-                        margin: EdgeInsets.symmetric(vertical: 8),
+                        margin: EdgeInsets.symmetric(vertical: screenHeight * 0.01,horizontal: screenWidth * 0.01),
                         elevation: 3,
                         child: ListTile(
                           title: Text(event['name']),
@@ -547,12 +593,7 @@ class _EventListPageState extends State<EventListPage> {
                                   // Save the event ID to shared preferences
                                   await saveEventId(event['ID']);
                                   // Navigate to the UserGiftListPage
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => GiftListPage(),
-                                    ),
-                                  );
+                                  _navigateWithFade(context, '/giftList');
                                 },
                               ),
                             ],

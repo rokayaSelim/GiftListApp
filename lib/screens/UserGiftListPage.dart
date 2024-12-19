@@ -4,6 +4,9 @@ import 'mydatabase.dart';
 import 'session_manger.dart';
 import 'firebase.dart';// Your database class
 import 'package:proj_20p4322/notification_helper.dart';
+import 'ProfilePage.dart';
+import 'HomePage.dart';
+import 'EventListPage.dart';
 
 class UserGiftListPage extends StatefulWidget {
 
@@ -34,19 +37,56 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
       pledgedGifts = data.where((gift) => gift['isPledged'] == true).toList(); // Filter pledged gifts
     });
   }
+  void _navigateWithFade(BuildContext context, String routeName) {
+    // Define the page you want to navigate to based on the route name
+    Widget page;
+    switch (routeName) {
+      case '/eventList':
+        page = EventListPage();
+        break;
+      case '/':
+        page = HomePage();
+        break;
+      case '/profile':
+        page = ProfilePage();
+        break;
+      default:
+        page = HomePage(); // Fallback page in case route is undefined
+        break;
+    }
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return page;
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = 0.0;
+          const end = 1.0;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var opacityAnimation = animation.drive(tween);
+
+          return FadeTransition(opacity: opacityAnimation, child: child);
+        },
+      ),
+    );
+  }
   int _selectedIndex = 0;
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index) async {
     setState(() {
       _selectedIndex = index;
     });
-
-    // Add navigation logic for each page
     if (index == 0) {
-      Navigator.pushNamed(context, '/');
-    } else if (index == 1) {
-      Navigator.pushNamed(context, '/eventList');
-    } else if (index == 2) {
-      Navigator.pushNamed(context, '/profile');
+      _navigateWithFade(context, '/');
+    }
+    if (index == 1) {
+      _navigateWithFade(context, '/eventList');
+    }
+    if (index == 2) {
+      _navigateWithFade(context, '/profile');
     }
   }
 // Function to pledge a gift
@@ -109,6 +149,8 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
         title: Text('Gift List', style: TextStyle(color: Colors.white)),
@@ -140,13 +182,15 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
             child: Container(color: Colors.black.withOpacity(0.1)),
           ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(12.0),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     DropdownButton<String>(
+                      iconEnabledColor: Colors.teal,
+                      padding: EdgeInsets.symmetric(vertical: screenHeight * 0.001,horizontal: screenWidth * 0.02),
                       value: sortBy,
                       onChanged: (String? newValue) {
                         if (newValue != null) {
@@ -163,7 +207,7 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: 6),
                 Expanded(
                   child: ListView.builder(
                     itemCount: gifts.length,
@@ -171,7 +215,7 @@ class _UserGiftListPageState extends State<UserGiftListPage> {
                       final gift = gifts[index];
                       return Card(
                         color: Colors.white.withOpacity(0.6),
-                        margin: EdgeInsets.symmetric(vertical: 8.0),
+                        margin: EdgeInsets.symmetric(vertical: screenHeight * 0.01,horizontal: screenWidth * 0.001),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         child: ListTile(
                           leading: gift['imagePath'] != null && gift['imagePath'].isNotEmpty
