@@ -41,7 +41,7 @@ void main() {
     // Enter data in the text fields
     await tester.enterText(usernameField, "TestUser");
     await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.enterText(emailField, "testusermnoqp@example.com");
+    await tester.enterText(emailField, "testUser@example.com");
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.enterText(passwordField, "TestPassword123!");
     await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -78,7 +78,7 @@ void main() {
     final signUpButton = find.byType(ElevatedButton);
 
     await tester.enterText(usernameField, "TestUser");
-    await tester.enterText(emailField, "testusermnoqp@example.com");
+    await tester.enterText(emailField, "testUser@example.com");
     await tester.enterText(passwordField, "TestPassword123!");
     await tester.enterText(confirmPasswordField, "DifferentPassword123!");
 
@@ -101,7 +101,7 @@ void main() {
 
     // Assuming "testuser@example.com" is already registered in Firebase
     await tester.enterText(usernameField, "TestUser");
-    await tester.enterText(emailField, "testusermnoqp@example.com");
+    await tester.enterText(emailField, "testUser@example.com");
     await tester.enterText(passwordField, "TestPassword123!");
     await tester.enterText(confirmPasswordField, "TestPassword123!");
 
