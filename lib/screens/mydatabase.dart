@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
+
 class MyDatabaseClass {
   static Database? _mydb;
 
@@ -50,6 +51,7 @@ class MyDatabaseClass {
             eventId INTEGER NOT NULL,
             PledgedBy INTEGER NULL,
             imagePath TEXT,
+            status Text,
             FOREIGN KEY(eventId) REFERENCES events(ID)
             FOREIGN KEY(PledgedBy) REFERENCES users(ID)
           )
@@ -62,14 +64,17 @@ class MyDatabaseClass {
             email TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
             username TEXT NOT NULL,
-            phoneNumber TEXT NOT NULL
+            phoneNumber TEXT NOT NULL,
+            imagePath TEXT
           )
         ''');
         await mydb.execute('''
           CREATE TABLE IF NOT EXISTS friends (
             ID INTEGER PRIMARY KEY AUTOINCREMENT,
             userId INTEGER NOT NULL,
-            FOREIGN KEY(userId) REFERENCES users(ID)
+            friendId INTEGER NOT NULL,
+            FOREIGN KEY(userId) REFERENCES users(ID),
+            FOREIGN KEY(friendId) REFERENCES users(ID)
           )
         ''');
 
@@ -77,24 +82,39 @@ class MyDatabaseClass {
       },
     );
   }
-// Add a friend relationship in the database
+
   Future<void> addFriend(int userId, int friendId) async {
     Database? mydb = await database;
-    await mydb!.insert('friends', {
-      'userId': userId,
-      'ID': friendId,
-    });
-  }
 
+    // Check if the friend relationship already exists
+    List<Map<String, dynamic>> result = await mydb!.query(
+      'friends',
+      where: 'userId = ? AND friendId = ?',
+      whereArgs: [userId, friendId],
+    );
+
+    if (result.isEmpty) {
+      // Insert only if the relationship does not exist
+      await mydb.insert('friends', {
+        'userId': userId,
+        'friendId': friendId,
+      });
+      print('Friend added: $userId -> $friendId');
+    } else {
+      print('Friend relationship already exists: $userId -> $friendId');
+    }
+  }
   // Remove a friend relationship from the database
   Future<void> removeFriend(int userId, int friendId) async {
     Database? mydb = await database;
     await mydb!.delete(
       'friends',
-      where: 'userId = ? AND ID = ?',
+      where: 'userId = ? AND friendId = ?',
       whereArgs: [userId, friendId],
     );
+    print('Friend removed: $userId -> $friendId');
   }
+
   Future<List<Map<String, dynamic>>> getPledgedGiftsByUserId(int userId) async {
     Database? mydb = await database;
     return await mydb!.query(
@@ -109,7 +129,7 @@ class MyDatabaseClass {
     final result = await mydb!.rawQuery('''
     SELECT u.ID, u.username, u.email
     FROM friends f
-    INNER JOIN users u ON f.ID = u.ID
+    INNER JOIN users u ON f.friendId = u.ID
     WHERE f.userId = ?
   ''', [userId]);
 
@@ -125,6 +145,24 @@ class MyDatabaseClass {
       'password': password,
       'phoneNumber': number,
     });
+
+  }
+
+  Future<void> updateUserProfilePic(int userId, String imagePath) async {
+    Database? mydb = await database;
+    try {
+      await mydb!.update(
+        'users',
+        {
+          'imagePath': imagePath
+        },
+        where: 'ID = ?',
+        whereArgs: [userId],
+      );
+      print("User profile picture updated in local database.");
+    } catch (e) {
+      print("Error updating profile picture in local database: $e");
+    }
   }
 
   // Fetch all users from the database
@@ -215,17 +253,18 @@ class MyDatabaseClass {
   }
 
   // Add a new event to the database
-  Future<void> addEvent(String name, String date, String location, String description, String category, int userId) async {
+  Future<int> addEvent(String name, String date, String location, String description, String category,String status, int userId) async {
     Database? mydb = await database;
-    await mydb!.insert('events', {
+    final eventId = await mydb!.insert('events', {
       'name': name,
       'category': category,
       'date': date,
       'location': location,
       'description': description,
-      'status': 'Upcoming', // Assuming default status is 'Upcoming'
+      'status': status, // Assuming default status is 'Upcoming'
       'userId': userId,
     });
+    return eventId; // Return the generated ID
   }
   Future<List<Map<String, dynamic>>> getEventsByUserId(int userId) async {
     Database? mydb = await database;
@@ -242,7 +281,7 @@ class MyDatabaseClass {
   }
 
   // Update an existing event in the database
-  Future<void> updateEvent(int eventID, String name, String date, String location, String description, String category) async {
+  Future<void> updateEvent(int eventID, String name, String date, String location,String status ,String description, String category) async {
     Database? mydb = await database;
     await mydb!.update(
       'events',
@@ -252,6 +291,7 @@ class MyDatabaseClass {
         'date': date,
         'location': location,
         'description': description,
+        'status': status,
       },
       where: 'ID = ?',
       whereArgs: [eventID],
@@ -271,15 +311,18 @@ class MyDatabaseClass {
   }
 
   // Add a new gift to the database
-  Future<void> addGift(String name, String category, String description, double price, int eventId) async {
+  Future<int> addGift(String name, String category, String description, double price, int eventId, int isPledged ,String imagepath) async {
     Database? mydb = await database;
-    await mydb!.insert('gifts', {
+    final id = await mydb!.insert('gifts', {
       'name': name,
       'category': category,
       'description': description,
       'price': price,
       'eventId': eventId,
+      'isPledged': isPledged,
+      'imagePath': imagepath,
     });
+    return id; // Return the generated ID
   }
 
   // Update an existing gift in the database

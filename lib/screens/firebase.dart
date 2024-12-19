@@ -8,11 +8,22 @@ class FirestoreHelper {
       await _firestore.collection('users').doc(user['ID'].toString()).set(user);
     }
   }
+  Future<void> updateUserProfilePic(String userId, String imageUrl) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'imagePath': imageUrl,
+      });
+      print("User profile picture updated in Firestore.");
+    } catch (e) {
+      print("Error updating profile picture in Firestore: $e");
+    }
+  }
+
   // Delete a specific user from Firestore
   Future<void> deleteUser(String userId) async {
     try {
       await _firestore.collection('users').doc(userId).delete();
-      print('Event $userId successfully deleted from Firestore.');
+      print('User $userId successfully deleted from Firestore.');
     } catch (e) {
       throw Exception('Error deleting user from Firestore: $e');
     }
@@ -39,7 +50,7 @@ class FirestoreHelper {
       // Fetch events where the userId matches the friend's userId
       QuerySnapshot snapshot = await _firestore
           .collection('events')
-          .where('userID', isEqualTo: parsedUserId) // Compare as integer
+          .where('userId', isEqualTo: parsedUserId) // Compare as integer
           .get();
 
       print("Fetched ${snapshot.docs.length} events from Firestore");
@@ -51,7 +62,6 @@ class FirestoreHelper {
       return []; // Return an empty list in case of error
     }
   }
-
 
   Future<DocumentSnapshot> getEventById(int eventId) async {
     try {
@@ -85,6 +95,26 @@ class FirestoreHelper {
   Future<void> syncGifts(List<Map<String, dynamic>> gifts) async {
     for (var gift in gifts) {
       await _firestore.collection('gifts').doc(gift['ID'].toString()).set(gift);
+    }
+  }
+  // Fetch pledged gifts for a specific user
+  Future<List<Map<String, dynamic>>> getPledgedGiftsByUserId(int userId) async {
+    try {
+      print("Fetching pledged gifts from Firestore for userId: $userId");
+
+      // Query Firestore to get gifts pledged by the user
+      QuerySnapshot snapshot = await _firestore
+          .collection('gifts')
+          .where('PledgedBy', isEqualTo: userId) // Assuming 'userId' field in gifts collection
+          .get();
+
+      print("Fetched ${snapshot.docs.length} pledged gifts from Firestore");
+
+      // Convert query snapshot to a list of maps
+      return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+    } catch (e) {
+      print('Error fetching pledged gifts for user $userId: $e');
+      return []; // Return an empty list in case of error
     }
   }
   Future<List<Map<String, dynamic>>> getGiftsForEvent(int eventId) async {
@@ -137,7 +167,40 @@ class FirestoreHelper {
       throw Exception('Error deleting event $giftId from Firestore: $e');
     }
   }
+  Future<void> addFriendToFirestore(int userId, int friendId) async {
+    try {
+      // Explicitly set the document ID to friendId
+      await _firestore.collection('friends').add({
+        'userId': userId,
+        'friendId': friendId,
+      });
 
+      print('Friend relationship added to Firestore: $userId -> $friendId');
+    } catch (e) {
+      print('Error adding friend to Firestore: $e');
+      throw Exception('Failed to add friend in Firestore');
+    }
+  }
+  Future<void> deleteFriend(int userId, int friendId) async {
+    try {
+      // Query Firestore to find the document with matching userId and friendId
+      var querySnapshot = await _firestore
+          .collection('friends')
+          .where('userId', isEqualTo: userId)
+          .where('friendId', isEqualTo: friendId)
+          .get();
+
+      // Loop through the results and delete each matching document
+      for (var doc in querySnapshot.docs) {
+        await _firestore.collection('friends').doc(doc.id).delete();
+      }
+
+      print('Friendship between $userId and $friendId successfully deleted from Firestore.');
+    } catch (e) {
+      print('Error deleting friend from Firestore: $e');
+      throw Exception('Error deleting friend from Firestore: $e');
+    }
+  }
   Future<void> syncFriends(List<Map<String, dynamic>> friends) async {
     for (var friend in friends) {
       await _firestore.collection('friends').doc(friend['ID'].toString()).set(friend);
