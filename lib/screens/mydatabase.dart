@@ -244,8 +244,16 @@ class MyDatabaseClass {
       where: 'ID = ?',
       whereArgs: [id],
     );
+    print(' user with ID $id deleted.');
   }
-
+  Future<void> deleteUserByEmail(String email) async {
+    Database? mydb = await database;
+    await mydb!.delete(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+  }
   // Get all events from the database
   Future<List<Map<String, dynamic>>> getAllEvents() async {
     Database? mydb = await database;
