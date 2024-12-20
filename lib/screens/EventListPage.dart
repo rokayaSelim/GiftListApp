@@ -106,7 +106,7 @@ class _EventListPageState extends State<EventListPage> {
       } else if (criteria == 'category') {
         events.sort((a, b) => a['category'].compareTo(b['category']));
       } else if (criteria == 'status') {
-        events.sort((a, b) => a['status'].compareTo(b['status']));
+        events.sort((a, b) => a['Status'].compareTo(b['Status']));
       }
     });
   }

@@ -546,8 +546,9 @@ class _HomePageState extends State<HomePage> {
                             backgroundColor: Colors.teal[50],
                             backgroundImage: friend['imagePath'] != null && friend['imagePath'].isNotEmpty
                                 ? NetworkImage(friend['imagePath'])  // Replace with Image URL or Firebase path
-                                : AssetImage('assets/images/default_profile.png'),  // Default profile image if no image path
+                                : AssetImage('assets/images/default_profile.png') as ImageProvider,  // Default profile image if no image path
                           ),
+
                           title: Text(
                             friend['name'],
                             style: TextStyle(fontWeight: FontWeight.w600,

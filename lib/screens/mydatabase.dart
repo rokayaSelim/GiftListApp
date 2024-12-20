@@ -289,7 +289,7 @@ class MyDatabaseClass {
   }
 
   // Update an existing event in the database
-  Future<void> updateEvent(int eventID, String name, String date, String location,String status ,String description, String category) async {
+  Future<void> updateEvent(int eventID, String name, String date, String location ,String description, String category,String status) async {
     Database? mydb = await database;
     await mydb!.update(
       'events',
