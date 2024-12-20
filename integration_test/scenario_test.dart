@@ -39,7 +39,7 @@ void main() {
     // Enter data in the text fields
     await tester.enterText(usernameField, "TestUser");
     await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.enterText(emailField, "TestssssssUserssssss@example.com");
+    await tester.enterText(emailField, "TestsssssssUserssssss@example.com");
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.enterText(passwordField, "TestPassword123!");
     await tester.testTextInput.receiveAction(TextInputAction.done);
