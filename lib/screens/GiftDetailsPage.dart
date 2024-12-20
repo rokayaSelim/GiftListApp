@@ -88,6 +88,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gift published to Friends!')),
         );
+        print("Gift published to Friends!");
       }
       Navigator.pop(context, true); // Return to the previous page
     }

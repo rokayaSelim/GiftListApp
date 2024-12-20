@@ -261,6 +261,7 @@ class _EventListPageState extends State<EventListPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Event published to Friends!')),
                     );
+                    print("Event published to Friends!");
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Event saved for you only!')),
