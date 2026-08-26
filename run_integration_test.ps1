@@ -6,14 +6,14 @@
 # Define Environment Variables
 # ----------------------------
 
-$androidSdkPath = "C:\Users\Eng.Rokaya\AppData\Local\Android\Sdk\platform-tools"
+$androidSdkPath = ""
 $flutterPath = "C:\FlutterSDKTools\flutter"
-$projectPath = "C:\Users\Eng.Rokaya\StudioProjects\proj_20p4322"
+$projectPath = ""
 $testFile = "$projectPath\integration_test\scenario_test.dart"
 $deviceName = "Pixel_8_Pro_API_27"
 $logFile = "$projectPath\test_logs.txt"
 $videoFile = "$projectPath\testRecording.mp4"
-$emulatorExecutable = "C:\Users\Eng.Rokaya\AppData\Local\Android\Sdk\emulator\emulator.exe"
+$emulatorExecutable = ""
 
 # Explicitly specify flutter.bat
 $flutterCommand = Join-Path $flutterPath "bin\flutter.bat"
