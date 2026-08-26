@@ -83,15 +83,15 @@ class NotificationsHelper {
     final serviceAccountJson = {
 
       "type": "service_account",
-      "project_id": "proj20p4322-d6f40",
-      "private_key_id": "d233ee4b8f333e1f9f06835d8a7385ff1c2b30b1",
-      "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC9sXRnq0DKvJhM\nII0uXfi2ZXa8OkdDAtHkVl2VsgqInFrpBDTawII0Mzp6QhAKRe8B5Ct/lgeL7PhX\n/0WYHVW285Tobvn+nhX+ogmI4m5uXpEs3pMZdKs+i9VhDlsOD6W10P0/ap87mVrz\nwg//QnDE8CcovVKOA/AyJHJ1ZPriOQySAEWx7igqc8riZ7tpp6qugmm2Pn1xKZoS\nD772xFlH1GtBGpqSqNxEgbQlCYNCG5/vAPDkL8e4fco7tvspb5d/QUji7BTsjDLn\nqWr+EoXJ8fa411QVDV3mRWvYSZ+wPCwtNgtsYtM0Z+7oa2EOV/+DoC72fKPr/+Pj\nTWPsjNczAgMBAAECggEAIOlJa3UkbChVehvJsuo97RNkitrHo2I5XVb4rLCzsCkE\ngtome2+cB4d91Vlh5A5nHdpjC6NRkt7d5ZKWFgK87N2ND9i1Sg5OfZvKcLPsefyx\nTmoddnSuA0+KiWjOtn1TgFyOm7KZhuMgCxu33888toZ+HMzgJmCbi2+UZjbLanUz\n+ADsyvDgGzc6eOiKuWxaRe3tRtiK57BIFpK6kMTfS7AY2fFR8OACB0VgR91RVGJ8\n664qWBcI0YQQbHOI7GVbRNJQqFH6Xv6M08gEJeWsQYA3Vvre+gFgR+VcPIl3p0ga\nVL2xlMgh39cszGMIBtO1uTP91DG8Y7587xLGxacQUQKBgQDcbcgNbEDSYYUVwjK0\n5dLPSowz4X5X+7ksS3y6MPCBXRDu49b+M1hMeuBpi/2u2u4WFqnv4c0zYJzfh6Eb\nBlWdOX5CPuekLOlKHRNwgY69u7Wi+L/uvPo3+PycVLtmJU+xTxiRpT8yz5VJPkNC\n3HNrW9B7k5C/QPsQiNY1S7LnEQKBgQDcTfDxnR6Gcp2valMAGWGz4fKl+vvte5TW\n8ZeY4kDbULvXXdtcSrzYy6iS2jZA86B3tLhbDMc4jQmocXddn2iPeLAAcjlEIwzs\nI3cItMhETwV/NcIW/EaQiaeu7TYIFYznXji1+2EH8w50GQtBpaJUN3FXl0y8rtOY\nBswcJUYCAwKBgQCbskNzD7q9nzpUwyXz1r3Pw3VClA0c8mW6XtuL3FOU3HrAcliC\nlxvQcZ6fjs0yO9ud6IZCNTkvCBfmX7OxFglVE64V9r7BnSNvQRhhCHIdnD/RDGjt\npbgL3yf2+Hah0Mr4j8jn31PDfRKSeJMj3/j6pRCeqP29yZVM+YpsfLqyMQKBgQCr\nfeC5tF02u7IUAuhpg1iS9qg0nJPP4guS5q3jzPw/vTD8DYvc5DDtclvfNQ5WsU+Q\n35VDC0dptiB2hx0sPBLg3EnljwUVDVPZ3iGjHVdoFTtqMybLTcaAbSei+/S7hksR\nMD9lKjH2RjZSGcyxZYZfmGkajiSmHFGKXoA0yK8ekQKBgQCw4oAmZn5hI503KzXx\nk27Kiy8HJDttMNNZ+RHA3DRx9a+2uiO6dGsH6UExr6bXr3shoJ9shDav6Ai0B7iV\nKeTNJoIYYEa+vK4NOOgIi+oYnycQpFvcb+5Pp5q16gluuOrEArJAvyLIHRLwivjM\nVtRLCj24x9DVWL2HLAkwDitcZg==\n-----END PRIVATE KEY-----\n",
-      "client_email": "firebase-adminsdk-5secu@proj20p4322-d6f40.iam.gserviceaccount.com",
-      "client_id": "104373557557256290342",
-      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-      "token_uri": "https://oauth2.googleapis.com/token",
-      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-      "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-5secu%40proj20p4322-d6f40.iam.gserviceaccount.com",
+      "project_id": "",
+      "private_key_id": "",
+      "private_key": "",
+      "client_email": "",
+      "client_id": "",
+      "auth_uri": "",
+      "token_uri": "",
+      "auth_provider_x509_cert_url": "",
+      "client_x509_cert_url": "",
       "universe_domain": "googleapis.com"
 
 
@@ -168,7 +168,7 @@ class NotificationsHelper {
 
       // change your project id
       const String urlEndPoint =
-          "https://fcm.googleapis.com/v1/projects/proj20p4322-d6f40/messages:send";
+          "";
 
       Dio dio = Dio();
       dio.options.headers['Content-Type'] = 'application/json';
